@@ -2,7 +2,7 @@
 
 HandiAI is a premium, fully-responsive desktop application built with **Python**, **PySide6**, and **Matplotlib**. It serves as a modern, dark-themed MLOps dashboard designed to monitor production machine learning models, detect statistical drift, explain predictions using SHAP values, and track system resources in real-time.
 
-![HandiAI Dashboard Preview](https://via.placeholder.com/1200x600.png?text=HandiAI+Dashboard)
+![HandiAI Dashboard Preview](./preview.png)
 
 ## 🚀 Features
 

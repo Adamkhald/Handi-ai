@@ -1,16 +1,16 @@
 """
-HandiAI — Dashboard Page (Main landing page)
+HandiAI — Dashboard Page
 """
 
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel,
-    QPushButton, QScrollArea, QFrame, QSizePolicy, QSpacerItem
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel,
+    QPushButton, QScrollArea, QFrame, QLineEdit, QSizePolicy
 )
 from PySide6.QtCore import Qt, QTimer
 
 import data
 from widgets.components import (
-    Card, MetricCard, CircularGauge, Sparkline, DonutChart, make_label, add_shadow
+    Card, MetricCard, CircularGauge, DonutChart, make_label, add_shadow
 )
 from charts.matplotlib_charts import (
     ProductionChart, TrafficChart, DriftMiniChart
@@ -18,22 +18,150 @@ from charts.matplotlib_charts import (
 
 
 # ─────────────────────────────────────────────────────────────
-#  Section Title Helper
+#  Chat Components
 # ─────────────────────────────────────────────────────────────
-def section_title(text, subtitle=""):
-    w = QWidget()
-    w.setStyleSheet("background: transparent;")
-    lay = QVBoxLayout(w)
-    lay.setContentsMargins(0, 0, 0, 0)
-    lay.setSpacing(2)
-    t = QLabel(text)
-    t.setStyleSheet("font-size: 15px; font-weight: 700; color: #ffffff; background: transparent;")
-    lay.addWidget(t)
-    if subtitle:
-        s = QLabel(subtitle)
-        s.setStyleSheet("font-size: 11px; color: #9896c8; background: transparent;")
-        lay.addWidget(s)
-    return w
+class ChatBubble(QWidget):
+    def __init__(self, text, is_user=True, parent=None):
+        super().__init__(parent)
+        lay = QHBoxLayout(self)
+        lay.setContentsMargins(0, 2, 0, 2)
+        lay.setSpacing(0)
+
+        bubble = QLabel(text)
+        bubble.setWordWrap(True)
+        bubble.setMaximumWidth(220)
+
+        if is_user:
+            bubble.setStyleSheet(
+                "background: #111111; color: #ffffff; border-radius: 10px; "
+                "padding: 7px 11px; font-size: 12px;"
+            )
+            lay.addStretch()
+            lay.addWidget(bubble)
+        else:
+            bubble.setStyleSheet(
+                "background: #f0f0f0; color: #111111; border-radius: 10px; "
+                "padding: 7px 11px; font-size: 12px;"
+            )
+            lay.addWidget(bubble)
+            lay.addStretch()
+
+
+class ChatPanel(QFrame):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName("card")
+        self.setFixedSize(300, 420)
+        self._setup_ui()
+        self.hide()
+
+    def _setup_ui(self):
+        lay = QVBoxLayout(self)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setSpacing(0)
+
+        header = QWidget()
+        header.setStyleSheet("background: #111111; border-radius: 12px 12px 0 0;")
+        header.setFixedHeight(46)
+        hl = QHBoxLayout(header)
+        hl.setContentsMargins(14, 0, 14, 0)
+        title = QLabel("HandiAI Assistant")
+        title.setStyleSheet(
+            "color: #ffffff; font-size: 13px; font-weight: 700; background: transparent;"
+        )
+        hl.addWidget(title)
+        hl.addStretch()
+        status = QLabel("Online")
+        status.setStyleSheet("color: #888888; font-size: 10px; background: transparent;")
+        hl.addWidget(status)
+        lay.addWidget(header)
+
+        self._scroll = QScrollArea()
+        self._scroll.setWidgetResizable(True)
+        self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._scroll.setStyleSheet("QScrollArea { background: #ffffff; border: none; }")
+
+        self._msg_widget = QWidget()
+        self._msg_widget.setStyleSheet("background: #ffffff;")
+        self._msg_lay = QVBoxLayout(self._msg_widget)
+        self._msg_lay.setContentsMargins(12, 12, 12, 12)
+        self._msg_lay.setSpacing(4)
+        self._msg_lay.addStretch()
+        self._scroll.setWidget(self._msg_widget)
+        lay.addWidget(self._scroll, 1)
+
+        input_row = QWidget()
+        input_row.setStyleSheet(
+            "background: #f8f8f8; border-top: 1px solid #e8e8e8; border-radius: 0 0 12px 12px;"
+        )
+        input_row.setFixedHeight(52)
+        ir = QHBoxLayout(input_row)
+        ir.setContentsMargins(12, 8, 12, 8)
+        ir.setSpacing(8)
+
+        self._input = QLineEdit()
+        self._input.setPlaceholderText("Ask about your models...")
+        self._input.setStyleSheet(
+            "QLineEdit { background: #ffffff; border: 1px solid #e0e0e0; border-radius: 8px; "
+            "padding: 6px 10px; font-size: 12px; color: #111111; }"
+        )
+        self._input.returnPressed.connect(self._send)
+        ir.addWidget(self._input)
+
+        send_btn = QPushButton("Send")
+        send_btn.setFixedSize(52, 32)
+        send_btn.setStyleSheet(
+            "QPushButton { background: #111111; color: #ffffff; border-radius: 8px; "
+            "font-size: 12px; font-weight: 600; border: none; }"
+            "QPushButton:hover { background: #333333; }"
+        )
+        send_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        send_btn.clicked.connect(self._send)
+        ir.addWidget(send_btn)
+        lay.addWidget(input_row)
+
+        self._add_message(
+            "Hello! Ask me about model accuracy, drift, traffic, or navigation.", False
+        )
+
+    def _add_message(self, text, is_user):
+        bubble = ChatBubble(text, is_user)
+        self._msg_lay.insertWidget(self._msg_lay.count() - 1, bubble)
+        QTimer.singleShot(60, lambda: self._scroll.verticalScrollBar().setValue(
+            self._scroll.verticalScrollBar().maximum()
+        ))
+
+    def _send(self):
+        text = self._input.text().strip()
+        if not text:
+            return
+        self._input.clear()
+        self._add_message(text, True)
+        QTimer.singleShot(250, lambda: self._add_message(self._respond(text), False))
+
+    def _respond(self, text):
+        t = text.lower()
+        if any(w in t for w in ["accuracy", "accurate"]):
+            acc = data.MODEL_METRICS.get("accuracy", 0)
+            return (f"Current model accuracy is {acc * 100:.1f}%." if acc
+                    else "No model loaded yet. Upload one via Upload & Analyze.")
+        if any(w in t for w in ["drift", "shift"]):
+            return "Drift scores update in real-time once a model is active."
+        if any(w in t for w in ["model", "loaded"]):
+            n = len(data.MODELS)
+            return (f"{n} model(s) currently loaded." if n
+                    else "No models loaded. Use Upload & Analyze to add one.")
+        if any(w in t for w in ["request", "traffic", "predict"]):
+            return "Production request counts update live once a model is deployed."
+        if any(w in t for w in ["shap", "feature", "explain"]):
+            return "Go to Explainability for detailed SHAP feature importance charts."
+        if any(w in t for w in ["log"]):
+            return "Production logs are on the Production Logs page."
+        if any(w in t for w in ["monitor"]):
+            return "Real-time monitoring is on the Monitoring page."
+        if any(w in t for w in ["help", "what can"]):
+            return "I can help with accuracy, drift, traffic, SHAP, and navigation."
+        return "I can help with model accuracy, drift, traffic, SHAP, and more. Try asking!"
 
 
 # ─────────────────────────────────────────────────────────────
@@ -51,17 +179,18 @@ class SHAPDonutCard(Card):
 
         header = QHBoxLayout()
         title = QLabel("SHAP Feature Contribution")
-        title.setStyleSheet("font-size: 13px; font-weight: 700; color: #ffffff; background: transparent;")
+        title.setStyleSheet(
+            "font-size: 13px; font-weight: 700; color: #000000; background: transparent;"
+        )
         header.addWidget(title)
         header.addStretch()
-        btn = QPushButton("Details →")
-        btn.setObjectName("btn_secondary")
-        btn.setFixedHeight(26)
-        btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        header.addWidget(btn)
+        self._details_btn = QPushButton("Details")
+        self._details_btn.setObjectName("btn_secondary")
+        self._details_btn.setFixedHeight(26)
+        self._details_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        header.addWidget(self._details_btn)
         lay.addLayout(header)
 
-        # Donut + legend row
         content = QHBoxLayout()
         content.setSpacing(12)
 
@@ -74,15 +203,18 @@ class SHAPDonutCard(Card):
         for label, pct, color in data.SHAP_DONUT_DATA:
             row = QHBoxLayout()
             row.setSpacing(6)
-            dot = QLabel("●")
-            dot.setStyleSheet(f"color: {color}; font-size: 10px; background: transparent;")
-            row.addWidget(dot)
+            dot = QWidget()
+            dot.setFixedSize(8, 8)
+            dot.setStyleSheet(f"background: {color}; border-radius: 4px;")
+            row.addWidget(dot, alignment=Qt.AlignmentFlag.AlignVCenter)
             lbl = QLabel(f"{label[:16]}")
-            lbl.setStyleSheet("font-size: 10px; color: #9896c8; background: transparent;")
+            lbl.setStyleSheet("font-size: 10px; color: #888888; background: transparent;")
             row.addWidget(lbl)
             row.addStretch()
             pct_lbl = QLabel(f"{pct}%")
-            pct_lbl.setStyleSheet("font-size: 10px; font-weight: 700; color: #ffffff; background: transparent;")
+            pct_lbl.setStyleSheet(
+                "font-size: 10px; font-weight: 700; color: #000000; background: transparent;"
+            )
             row.addWidget(pct_lbl)
             legend_col.addLayout(row)
         content.addLayout(legend_col)
@@ -104,20 +236,26 @@ class TrafficCard(Card):
 
         header = QHBoxLayout()
         title = QLabel("Traffic & Requests")
-        title.setStyleSheet("font-size: 13px; font-weight: 700; color: #ffffff; background: transparent;")
+        title.setStyleSheet(
+            "font-size: 13px; font-weight: 700; color: #000000; background: transparent;"
+        )
         header.addWidget(title)
         header.addStretch()
-        badge = QLabel("● LIVE")
-        badge.setStyleSheet("color: #00c97d; font-size: 10px; font-weight: 700; background: transparent;")
+        badge = QLabel("LIVE")
+        badge.setStyleSheet(
+            "color: #555555; font-size: 10px; font-weight: 700; background: transparent;"
+        )
         header.addWidget(badge)
         lay.addLayout(header)
 
         value_row = QHBoxLayout()
-        self._val_lbl = QLabel("1.2M")
-        self._val_lbl.setStyleSheet("font-size: 20px; font-weight: 800; color: #00e0b8; background: transparent;")
+        self._val_lbl = QLabel("—")
+        self._val_lbl.setStyleSheet(
+            "font-size: 20px; font-weight: 800; color: #222222; background: transparent;"
+        )
         value_row.addWidget(self._val_lbl)
         sub = QLabel("requests / day")
-        sub.setStyleSheet("font-size: 10px; color: #9896c8; background: transparent;")
+        sub.setStyleSheet("font-size: 10px; color: #888888; background: transparent;")
         value_row.addWidget(sub, alignment=Qt.AlignmentFlag.AlignBottom)
         value_row.addStretch()
         lay.addLayout(value_row)
@@ -142,20 +280,26 @@ class DriftScoreCard(Card):
 
         header = QHBoxLayout()
         title = QLabel("Model Drift Score")
-        title.setStyleSheet("font-size: 13px; font-weight: 700; color: #ffffff; background: transparent;")
+        title.setStyleSheet(
+            "font-size: 13px; font-weight: 700; color: #000000; background: transparent;"
+        )
         header.addWidget(title)
         header.addStretch()
-        alert = QLabel("⚠ Stable")
-        alert.setStyleSheet("color: #ffd400; font-size: 10px; font-weight: 700; background: transparent;")
+        alert = QLabel("Stable")
+        alert.setStyleSheet(
+            "color: #888888; font-size: 10px; font-weight: 700; background: transparent;"
+        )
         header.addWidget(alert)
         lay.addLayout(header)
 
         value_row = QHBoxLayout()
-        self._val_lbl = QLabel("2.4%")
-        self._val_lbl.setStyleSheet("font-size: 20px; font-weight: 800; color: #b46cff; background: transparent;")
+        self._val_lbl = QLabel("—")
+        self._val_lbl.setStyleSheet(
+            "font-size: 20px; font-weight: 800; color: #000000; background: transparent;"
+        )
         value_row.addWidget(self._val_lbl)
         sub = QLabel("avg drift score")
-        sub.setStyleSheet("font-size: 10px; color: #9896c8; background: transparent;")
+        sub.setStyleSheet("font-size: 10px; color: #888888; background: transparent;")
         value_row.addWidget(sub, alignment=Qt.AlignmentFlag.AlignBottom)
         value_row.addStretch()
         lay.addLayout(value_row)
@@ -179,22 +323,23 @@ class GaugeCard(Card):
         lay.setSpacing(10)
 
         title = QLabel("Model Confidence")
-        title.setStyleSheet("font-size: 13px; font-weight: 700; color: #ffffff; background: transparent;")
+        title.setStyleSheet(
+            "font-size: 13px; font-weight: 700; color: #000000; background: transparent;"
+        )
         lay.addWidget(title)
 
-        sub = QLabel("fraud_detector_v3 · XGBoost")
-        sub.setStyleSheet("font-size: 10px; color: #9896c8; background: transparent;")
+        sub = QLabel("fraud_detector_v3  XGBoost")
+        sub.setStyleSheet("font-size: 10px; color: #888888; background: transparent;")
         lay.addWidget(sub)
 
         self._gauge = CircularGauge(92, "Confidence Score")
         self._gauge.setMinimumSize(180, 180)
         lay.addWidget(self._gauge, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        # Controls
         ctrl = QHBoxLayout()
         ctrl.setSpacing(8)
-        for label, icon in [("Prev", "◀"), ("Refresh", "↺"), ("Next", "▶")]:
-            btn = QPushButton(f"{icon}  {label}")
+        for label in ["Prev", "Refresh", "Next"]:
+            btn = QPushButton(label)
             btn.setObjectName("btn_secondary")
             btn.setFixedHeight(30)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -203,7 +348,7 @@ class GaugeCard(Card):
 
 
 # ─────────────────────────────────────────────────────────────
-#  Right Large Graph Panel
+#  Production Chart Card
 # ─────────────────────────────────────────────────────────────
 class ProductionChartCard(Card):
     def __init__(self, parent=None):
@@ -215,50 +360,48 @@ class ProductionChartCard(Card):
         lay.setContentsMargins(16, 14, 16, 14)
         lay.setSpacing(10)
 
-        # Header
         header = QHBoxLayout()
         title_col = QVBoxLayout()
         title_col.setSpacing(2)
         title = QLabel("Production Predictions Monitoring")
-        title.setStyleSheet("font-size: 14px; font-weight: 700; color: #ffffff; background: transparent;")
+        title.setStyleSheet(
+            "font-size: 14px; font-weight: 700; color: #000000; background: transparent;"
+        )
         sub = QLabel("Confidence % and Drift Score over the last 30 days")
-        sub.setStyleSheet("font-size: 10px; color: #9896c8; background: transparent;")
+        sub.setStyleSheet("font-size: 10px; color: #888888; background: transparent;")
         title_col.addWidget(title)
         title_col.addWidget(sub)
         header.addLayout(title_col)
         header.addStretch()
 
-        # Period selector
         for period in ["7D", "30D", "90D"]:
             btn = QPushButton(period)
             btn.setFixedSize(40, 26)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             btn.setStyleSheet(
-                "QPushButton { background: rgba(180,108,255,0.15); border: 1px solid #b46cff44; "
-                "border-radius: 8px; color: #b46cff; font-size: 11px; font-weight: 600; }"
-                "QPushButton:hover { background: rgba(180,108,255,0.3); }"
+                "QPushButton { background: #f0f0f0; border: 1px solid #d8d8d8; "
+                "border-radius: 8px; color: #333333; font-size: 11px; font-weight: 600; }"
+                "QPushButton:hover { background: #e8e8e8; }"
             )
             header.addWidget(btn)
-
         lay.addLayout(header)
 
-        # Legend row
         legend = QHBoxLayout()
-        for color, label in [("#00e0b8", "Confidence %"), ("#b46cff", "Drift Score")]:
+        for color, label in [("#555555", "Confidence %"), ("#333333", "Drift Score")]:
             row = QHBoxLayout()
             row.setSpacing(6)
-            dot = QLabel("━")
-            dot.setStyleSheet(f"color: {color}; font-size: 14px; background: transparent;")
-            row.addWidget(dot)
+            line = QFrame()
+            line.setFixedSize(16, 3)
+            line.setStyleSheet(f"background: {color}; border-radius: 1px;")
+            row.addWidget(line, alignment=Qt.AlignmentFlag.AlignVCenter)
             lbl = QLabel(label)
-            lbl.setStyleSheet("font-size: 11px; color: #9896c8; background: transparent;")
+            lbl.setStyleSheet("font-size: 11px; color: #888888; background: transparent;")
             row.addWidget(lbl)
             legend.addLayout(row)
             legend.addSpacing(16)
         legend.addStretch()
         lay.addLayout(legend)
 
-        # Chart
         self._chart = ProductionChart()
         lay.addWidget(self._chart)
 
@@ -267,16 +410,16 @@ class ProductionChartCard(Card):
 #  Dashboard Page
 # ─────────────────────────────────────────────────────────────
 class DashboardPage(QWidget):
-    def __init__(self, engine=None, parent=None):
+    def __init__(self, engine=None, navigate_fn=None, parent=None):
         super().__init__(parent)
         self.engine = engine
+        self._navigate = navigate_fn
         self.setObjectName("page_container")
         self._setup_ui()
         if self.engine:
             self._connect_engine()
 
     def _setup_ui(self):
-        # Outer scroll area
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(0)
@@ -295,60 +438,70 @@ class DashboardPage(QWidget):
         lay.setContentsMargins(24, 24, 24, 24)
         lay.setSpacing(20)
 
-        # ── Page header ──────────────────────────────────────
+        # Page header
         ph = QHBoxLayout()
         pg_title = QLabel("Dashboard")
-        pg_title.setStyleSheet("font-size: 22px; font-weight: 800; color: #ffffff; background: transparent;")
+        pg_title.setStyleSheet(
+            "font-size: 22px; font-weight: 800; color: #000000; background: transparent;"
+        )
         pg_sub = QLabel("Explainable AI Operations Center  ·  Last updated: just now")
-        pg_sub.setStyleSheet("font-size: 11px; color: #9896c8; background: transparent;")
+        pg_sub.setStyleSheet("font-size: 11px; color: #888888; background: transparent;")
         ph_col = QVBoxLayout()
         ph_col.setSpacing(2)
         ph_col.addWidget(pg_title)
         ph_col.addWidget(pg_sub)
         ph.addLayout(ph_col)
         ph.addStretch()
-        btn_refresh = QPushButton("↺  Refresh")
+        btn_refresh = QPushButton("Refresh")
         btn_refresh.setObjectName("btn_primary")
         btn_refresh.setFixedHeight(36)
         btn_refresh.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_refresh.clicked.connect(lambda: self.engine and self._connect_engine())
         ph.addWidget(btn_refresh)
         lay.addLayout(ph)
 
-        # ── Row 1: Summary Metric Cards ───────────────────────
+        # Row 1: Summary Metric Cards
         metric_row = QHBoxLayout()
         metric_row.setSpacing(16)
-        
+
         self._metric_cards = []
         fmt_fns = [
             lambda v: str(int(v)),
             lambda v: f"{v:.1f}%",
-            None, # requests is string format already from engine
-            None  # drift uses string format from engine too or custom, let's keep it direct
+            None,
+            None,
         ]
-        
+        nav_targets = [2, 4, 5, 4]  # Models, Monitoring, Logs, Monitoring
+
         for i, m in enumerate(data.SUMMARY_METRICS):
             fmt = fmt_fns[i] if i < len(fmt_fns) else None
-            card = MetricCard(m["title"], m["value"], m["trend"], m["icon"], m["color"], fmt_fn=fmt)
+            target = nav_targets[i]
+            on_click = (lambda t=target: self._navigate and self._navigate(t))
+            card = MetricCard(
+                m["title"], m["value"], m["trend"], m["icon"], m["color"],
+                fmt_fn=fmt, on_click=on_click,
+            )
             add_shadow(card, blur=20, y_off=4)
             metric_row.addWidget(card)
             self._metric_cards.append(card)
         lay.addLayout(metric_row)
 
-        # ── Row 2: Gauge | Center Cards | Big Chart ───────────
+        # Row 2: Gauge | Center Cards | Big Chart
         row2 = QHBoxLayout()
         row2.setSpacing(16)
 
-        # Left — Gauge
         self._gauge_card = GaugeCard()
         self._gauge_card.setFixedWidth(270)
         add_shadow(self._gauge_card)
         row2.addWidget(self._gauge_card)
 
-        # Centre — Stacked cards
         center_col = QVBoxLayout()
         center_col.setSpacing(12)
-        self._shap_card  = SHAPDonutCard()
+
+        self._shap_card = SHAPDonutCard()
         add_shadow(self._shap_card)
+        self._shap_card._details_btn.clicked.connect(
+            lambda: self._navigate and self._navigate(3))
         center_col.addWidget(self._shap_card)
 
         self._traffic_card = TrafficCard()
@@ -365,13 +518,12 @@ class DashboardPage(QWidget):
         center_w.setFixedWidth(280)
         row2.addWidget(center_w)
 
-        # Right — Big chart
         self._prod_card = ProductionChartCard()
         add_shadow(self._prod_card)
         row2.addWidget(self._prod_card, 1)
         lay.addLayout(row2)
 
-        # ── Row 3: Quick Model Status Table ──────────────────
+        # Row 3: Active Models Table
         models_card = Card()
         add_shadow(models_card)
         mc_lay = QVBoxLayout(models_card)
@@ -380,68 +532,75 @@ class DashboardPage(QWidget):
 
         mh = QHBoxLayout()
         t = QLabel("Active Models Overview")
-        t.setStyleSheet("font-size: 14px; font-weight: 700; color: #ffffff; background: transparent;")
+        t.setStyleSheet(
+            "font-size: 14px; font-weight: 700; color: #000000; background: transparent;"
+        )
         mh.addWidget(t)
         mh.addStretch()
-        btn_all = QPushButton("View All Models →")
+        btn_all = QPushButton("View All Models")
         btn_all.setObjectName("btn_secondary")
         btn_all.setFixedHeight(28)
         btn_all.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_all.clicked.connect(lambda: self._navigate and self._navigate(2))
         mh.addWidget(btn_all)
         mc_lay.addLayout(mh)
 
-        # Mini table header
         hdr = QHBoxLayout()
         for col in ["Model Name", "Type", "Accuracy", "Drift", "Status", "Requests"]:
             lbl = QLabel(col.upper())
             lbl.setStyleSheet(
-                "font-size: 10px; font-weight: 700; color: #5a5888; "
+                "font-size: 10px; font-weight: 700; color: #444444; "
                 "letter-spacing: 0.8px; background: transparent;"
             )
             hdr.addWidget(lbl, 1 if col != "Model Name" else 2)
         mc_lay.addLayout(hdr)
 
-        # Separator
         sep = QFrame()
         sep.setFrameShape(QFrame.Shape.HLine)
-        sep.setStyleSheet("background: #2e2b5f; max-height: 1px;")
+        sep.setStyleSheet("background: #e0e0e0; max-height: 1px;")
         mc_lay.addWidget(sep)
 
-        # Rows (show top 6 — populated when real data is loaded)
         if not data.MODELS:
             empty = QLabel("No models loaded — use Upload & Analyze to add your first model.")
             empty.setStyleSheet(
-                "font-size: 12px; color: #5a5888; padding: 16px 0; background: transparent;"
+                "font-size: 12px; color: #444444; padding: 16px 0; background: transparent;"
             )
             empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
             mc_lay.addWidget(empty)
         else:
             STATUS_COLORS = {
-                "Production": "#00c97d", "Staging": "#ffd400",
-                "Testing": "#4d9fff",   "Retired": "#ff5577",
+                "Production": "#aaaaaa", "Staging": "#888888",
+                "Testing": "#aaaaaa",    "Retired": "#888888",
             }
             for i, model in enumerate(data.MODELS[:6]):
-                row = QHBoxLayout(); row.setSpacing(0)
+                row = QHBoxLayout()
+                row.setSpacing(0)
 
                 name_lbl = QLabel(model["name"])
-                name_lbl.setStyleSheet("font-size: 12px; color: #ffffff; font-weight: 600; background: transparent;")
+                name_lbl.setStyleSheet(
+                    "font-size: 12px; color: #000000; font-weight: 600; background: transparent;"
+                )
                 row.addWidget(name_lbl, 2)
 
                 type_lbl = QLabel(model["type"])
-                type_lbl.setStyleSheet("font-size: 11px; color: #9896c8; background: transparent;")
+                type_lbl.setStyleSheet("font-size: 11px; color: #888888; background: transparent;")
                 row.addWidget(type_lbl, 1)
 
                 acc_lbl = QLabel(f"{model['accuracy']:.1f}%")
-                acc_lbl.setStyleSheet("font-size: 11px; color: #00e0b8; font-weight: 600; background: transparent;")
+                acc_lbl.setStyleSheet(
+                    "font-size: 11px; color: #222222; font-weight: 600; background: transparent;"
+                )
                 row.addWidget(acc_lbl, 1)
 
                 drift_v = model["drift"]
-                drift_color = "#00c97d" if drift_v < 0.05 else ("#ffd400" if drift_v < 0.12 else "#ff5577")
+                drift_color = "#aaaaaa" if drift_v < 0.05 else ("#888888" if drift_v < 0.12 else "#333333")
                 drift_lbl = QLabel(f"{drift_v:.2f}")
-                drift_lbl.setStyleSheet(f"font-size: 11px; color: {drift_color}; font-weight: 600; background: transparent;")
+                drift_lbl.setStyleSheet(
+                    f"font-size: 11px; color: {drift_color}; font-weight: 600; background: transparent;"
+                )
                 row.addWidget(drift_lbl, 1)
 
-                st_color = STATUS_COLORS.get(model["status"], "#9896c8")
+                st_color = STATUS_COLORS.get(model["status"], "#888888")
                 status_container = QWidget()
                 status_container.setStyleSheet(
                     f"background: {st_color}22; border-radius: 8px; border: 1px solid {st_color}44;"
@@ -449,26 +608,72 @@ class DashboardPage(QWidget):
                 st_inner = QHBoxLayout(status_container)
                 st_inner.setContentsMargins(8, 2, 8, 2)
                 st_lbl = QLabel(model["status"])
-                st_lbl.setStyleSheet(f"font-size: 10px; color: {st_color}; font-weight: 700; background: transparent;")
+                st_lbl.setStyleSheet(
+                    f"font-size: 10px; color: {st_color}; font-weight: 700; background: transparent;"
+                )
                 st_inner.addWidget(st_lbl)
                 row.addWidget(status_container, 1)
 
                 reqs = model["requests"]
-                req_str = (f"{reqs/1_000_000:.1f}M" if reqs >= 1_000_000
-                           else f"{reqs/1000:.0f}K" if reqs >= 1000 else str(reqs) or "—")
+                req_str = (
+                    f"{reqs / 1_000_000:.1f}M" if reqs >= 1_000_000
+                    else f"{reqs / 1000:.0f}K" if reqs >= 1000
+                    else str(reqs) or "—"
+                )
                 req_lbl = QLabel(req_str)
-                req_lbl.setStyleSheet("font-size: 11px; color: #9896c8; background: transparent;")
+                req_lbl.setStyleSheet("font-size: 11px; color: #888888; background: transparent;")
                 row.addWidget(req_lbl, 1)
 
                 mc_lay.addLayout(row)
 
                 if i < len(data.MODELS[:6]) - 1:
-                    sep2 = QFrame(); sep2.setFrameShape(QFrame.Shape.HLine)
-                    sep2.setStyleSheet("background: #2a2855; max-height: 1px;")
+                    sep2 = QFrame()
+                    sep2.setFrameShape(QFrame.Shape.HLine)
+                    sep2.setStyleSheet("background: #e0e0e0; max-height: 1px;")
                     mc_lay.addWidget(sep2)
 
         lay.addWidget(models_card)
         lay.addSpacing(10)
+
+        # Floating chat overlay (children of self, positioned via resizeEvent)
+        self._chat_panel = ChatPanel(self)
+        self._chat_btn = QPushButton("Ask AI", self)
+        self._chat_btn.setFixedSize(80, 36)
+        self._chat_btn.setStyleSheet(
+            "QPushButton { background: #111111; color: #ffffff; border-radius: 18px; "
+            "font-size: 12px; font-weight: 600; border: none; }"
+            "QPushButton:hover { background: #333333; }"
+        )
+        self._chat_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._chat_btn.clicked.connect(self._toggle_chat)
+        self._chat_btn.raise_()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._position_chat()
+
+    def _position_chat(self):
+        margin = 24
+        bw = self._chat_btn.width()
+        bh = self._chat_btn.height()
+        pw = self._chat_panel.width()
+        ph = self._chat_panel.height()
+
+        bx = self.width() - bw - margin
+        by = self.height() - bh - margin
+        self._chat_btn.move(bx, by)
+
+        px = self.width() - pw - margin
+        py = by - ph - 8
+        self._chat_panel.move(px, py)
+
+    def _toggle_chat(self):
+        self._chat_panel.setVisible(not self._chat_panel.isVisible())
+        self._position_chat()
+        if self._chat_panel.isVisible():
+            self._chat_panel.raise_()
+            self._chat_panel._input.setFocus()
+        self._chat_btn.raise_()
 
     def _connect_engine(self):
         self.engine.metrics_updated.connect(self._on_metrics)
@@ -483,30 +688,27 @@ class DashboardPage(QWidget):
             self._metric_cards[0].set_value(models, "+0 this week", instant)
             self._metric_cards[1].set_value(acc, "+0.1% vs last", instant)
             self._metric_cards[2].set_value(req_str, "~ Live", instant)
-            
-            # format drift score
             ds_str = f"{drift:.1f}%" if drift < 5 else f"{drift:.1f}% (!)"
             self._metric_cards[3].set_value(ds_str, "Updating...", instant)
-            
         self._traffic_card._val_lbl.setText(req_str)
         self._drift_card._val_lbl.setText(f"{drift:.1f}%")
 
     def _on_shap(self, features):
-        # Build donut data from top 4 positive features
         pos = [f for f in features if f["direction"] == "positive"]
         pos.sort(key=lambda x: x["shap"], reverse=True)
         top = pos[:3]
         total = sum(f["shap"] for f in features)
-        if total == 0: total = 1
-        
+        if total == 0:
+            total = 1
+
         segs = []
-        colors = ["#b46cff", "#00e0b8", "#ffd400", "#ff5577"]
+        colors = ["#222222", "#555555", "#888888", "#aaaaaa"]
         for i, f in enumerate(top):
-            pct = int((f["shap"]/total)*100)
-            segs.append((f["name"], pct, colors[i%len(colors)]))
-        
+            pct = int((f["shap"] / total) * 100)
+            segs.append((f["name"], pct, colors[i % len(colors)]))
+
         rem = 100 - sum(s[1] for s in segs)
         if rem > 0:
-            segs.append(("Other Features", rem, "#4d9fff"))
-            
+            segs.append(("Other Features", rem, "#aaaaaa"))
+
         self._shap_card._donut.set_segments(segs)

@@ -14,18 +14,18 @@ import random
 
 import data
 
-BG      = "#1a1836"
-BG_CARD = "#2a2855"
-GRID    = "#2e2b5f"
-TEXT    = "#9896c8"
-WHITE   = "#ffffff"
-PURPLE  = "#b46cff"
-CYAN    = "#00e0b8"
-YELLOW  = "#ffd400"
-RED     = "#ff5577"
-GREEN   = "#00c97d"
-BLUE    = "#4d9fff"
-ORANGE  = "#ff8c42"
+BG      = "#ffffff"
+BG_CARD = "#f8f8f8"
+GRID    = "#e8e8e8"
+TEXT    = "#aaaaaa"
+WHITE   = "#111111"
+PURPLE  = "#555555"
+CYAN    = "#333333"
+YELLOW  = "#888888"
+RED     = "#333333"
+GREEN   = "#444444"
+BLUE    = "#555555"
+ORANGE  = "#777777"
 
 
 def _style_axes(ax, fig=None):
@@ -336,7 +336,7 @@ class ConfusionMatrixChart(QWidget):
         for i in range(n):
             for j in range(n):
                 ax.text(j, i, str(cm[i, j]), ha="center", va="center",
-                        color=WHITE if cm[i, j] < thresh else "#1a1836",
+                        color=WHITE if cm[i, j] < thresh else "#0d0d0d",
                         fontsize=9, fontweight="bold")
         try:
             self._canvas.draw()

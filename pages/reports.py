@@ -4,7 +4,7 @@ HandiAI — Reports Page
 
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QScrollArea, QFrame
+    QScrollArea, QFrame, QFileDialog, QMessageBox
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
@@ -21,7 +21,7 @@ REPORTS = [
         "status":   "Ready",
         "pages":    12,
         "icon":     "📈",
-        "color":    "#00e0b8",
+        "color":    "#cccccc",
     },
     {
         "title":    "Drift Analysis — Q2 2026",
@@ -30,7 +30,7 @@ REPORTS = [
         "status":   "Ready",
         "pages":    8,
         "icon":     "📉",
-        "color":    "#b46cff",
+        "color":    "#333333",
     },
     {
         "title":    "SHAP Explainability Audit",
@@ -39,7 +39,7 @@ REPORTS = [
         "status":   "Ready",
         "pages":    15,
         "icon":     "🔍",
-        "color":    "#ffd400",
+        "color":    "#888888",
     },
     {
         "title":    "Production Reliability Summary",
@@ -48,7 +48,7 @@ REPORTS = [
         "status":   "Generating",
         "pages":    0,
         "icon":     "⚙",
-        "color":    "#ff8c42",
+        "color":    "#888888",
     },
     {
         "title":    "Model Fairness & Bias Report",
@@ -57,7 +57,7 @@ REPORTS = [
         "status":   "Ready",
         "pages":    20,
         "icon":     "⚖",
-        "color":    "#4d9fff",
+        "color":    "#aaaaaa",
     },
     {
         "title":    "Data Quality & Coverage Report",
@@ -66,7 +66,7 @@ REPORTS = [
         "status":   "Ready",
         "pages":    9,
         "icon":     "📋",
-        "color":    "#00c97d",
+        "color":    "#aaaaaa",
     },
 ]
 
@@ -99,9 +99,9 @@ class ReportsPage(QWidget):
         ph = QHBoxLayout()
         col = QVBoxLayout(); col.setSpacing(2)
         t = QLabel("Reports")
-        t.setStyleSheet("font-size: 22px; font-weight: 800; color: #ffffff; background: transparent;")
+        t.setStyleSheet("font-size: 22px; font-weight: 800; color: #000000; background: transparent;")
         s = QLabel("Generated performance, explainability and audit reports")
-        s.setStyleSheet("font-size: 11px; color: #9896c8; background: transparent;")
+        s.setStyleSheet("font-size: 11px; color: #888888; background: transparent;")
         col.addWidget(t); col.addWidget(s)
         ph.addLayout(col); ph.addStretch()
 
@@ -109,6 +109,9 @@ class ReportsPage(QWidget):
         gen_btn.setObjectName("btn_primary")
         gen_btn.setFixedHeight(36)
         gen_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        gen_btn.clicked.connect(lambda: QMessageBox.information(
+            self, "Generate Report",
+            "Select a model and date range to generate a new report.\n(Report generation coming soon.)"))
         ph.addWidget(gen_btn)
         lay.addLayout(ph)
 
@@ -116,10 +119,10 @@ class ReportsPage(QWidget):
         summary = QHBoxLayout()
         summary.setSpacing(14)
         for title, val, color in [
-            ("Total Reports", str(len(REPORTS)), "#00e0b8"),
-            ("Ready",         "5",              "#00c97d"),
-            ("Generating",    "1",              "#ffd400"),
-            ("Scheduled",     "3",              "#b46cff"),
+            ("Total Reports", str(len(REPORTS)), "#cccccc"),
+            ("Ready",         "5",              "#aaaaaa"),
+            ("Generating",    "1",              "#888888"),
+            ("Scheduled",     "3",              "#333333"),
         ]:
             card = Card()
             card.setMinimumHeight(80)
@@ -130,12 +133,13 @@ class ReportsPage(QWidget):
             vl = QLabel(val)
             vl.setStyleSheet(f"font-size: 22px; font-weight: 800; color: {color}; background: transparent;")
             nl = QLabel(title)
-            nl.setStyleSheet("font-size: 10px; color: #9896c8; background: transparent;")
+            nl.setStyleSheet("font-size: 10px; color: #888888; background: transparent;")
             cl.addWidget(vl); cl.addWidget(nl)
             summary.addWidget(card)
         lay.addLayout(summary)
 
         # Report cards
+        self._reports_lay = lay
         for report in REPORTS:
             card = Card()
             add_shadow(card)
@@ -161,18 +165,18 @@ class ReportsPage(QWidget):
             # Info
             info = QVBoxLayout(); info.setSpacing(4)
             nm = QLabel(report["title"])
-            nm.setStyleSheet("font-size: 13px; font-weight: 700; color: #ffffff; background: transparent;")
+            nm.setStyleSheet("font-size: 13px; font-weight: 700; color: #000000; background: transparent;")
             meta_text = f"{report['model']}  ·  {report['date']}"
             if report["pages"]:
                 meta_text += f"  ·  {report['pages']} pages"
             meta = QLabel(meta_text)
-            meta.setStyleSheet("font-size: 10px; color: #9896c8; background: transparent;")
+            meta.setStyleSheet("font-size: 10px; color: #888888; background: transparent;")
             info.addWidget(nm); info.addWidget(meta)
             cl.addLayout(info)
             cl.addStretch()
 
             # Status badge
-            st_color = "#00c97d" if report["status"] == "Ready" else "#ffd400"
+            st_color = "#aaaaaa" if report["status"] == "Ready" else "#888888"
             st_badge = QLabel(report["status"])
             st_badge.setStyleSheet(
                 f"background: {st_color}22; border: 1px solid {st_color}44; border-radius: 8px; "
@@ -181,20 +185,43 @@ class ReportsPage(QWidget):
             cl.addWidget(st_badge)
 
             # Action buttons
+            btn_style = (
+                "QPushButton { background: #f5f5f5; border: 1px solid #d8d8d8; "
+                "border-radius: 8px; font-size: 15px; }"
+                "QPushButton:hover { background: #e8e8e8; border: 1px solid #cccccc; }"
+                "QPushButton:disabled { opacity: 0.3; }"
+            )
             for icon, tip in [("⬇", "Download"), ("👁", "Preview"), ("🗑", "Delete")]:
                 b = QPushButton(icon)
                 b.setFixedSize(32, 32)
                 b.setToolTip(tip)
                 b.setCursor(Qt.CursorShape.PointingHandCursor)
                 b.setEnabled(report["status"] == "Ready")
-                b.setStyleSheet(
-                    "QPushButton { background: rgba(255,255,255,0.05); border: 1px solid #3a3670; "
-                    "border-radius: 8px; font-size: 15px; }"
-                    "QPushButton:hover { background: rgba(180,108,255,0.2); border: 1px solid #b46cff55; }"
-                    "QPushButton:disabled { opacity: 0.3; }"
-                )
+                b.setStyleSheet(btn_style)
+                if tip == "Download":
+                    b.clicked.connect(lambda _, r=report: self._download_report(r))
+                elif tip == "Preview":
+                    b.clicked.connect(lambda _, r=report: QMessageBox.information(
+                        self, r["title"],
+                        f"Model: {r['model']}\nDate: {r['date']}\nPages: {r['pages']}\nStatus: {r['status']}"))
+                elif tip == "Delete":
+                    b.clicked.connect(lambda _, c=card: self._delete_report(c))
                 cl.addWidget(b)
 
             lay.addWidget(card)
 
         lay.addSpacing(10)
+
+    def _download_report(self, report):
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Save Report", f"{report['title'].replace(' ', '_')}.pdf", "PDF Files (*.pdf)")
+        if path:
+            QMessageBox.information(self, "Download", f"Report saved to:\n{path}\n(Export not yet connected.)")
+
+    def _delete_report(self, card):
+        reply = QMessageBox.question(self, "Delete Report",
+            "Delete this report permanently?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        if reply == QMessageBox.StandardButton.Yes:
+            card.setParent(None)
+            card.deleteLater()

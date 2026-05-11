@@ -40,9 +40,9 @@ class DatasetsPage(QWidget):
         ph = QHBoxLayout()
         col = QVBoxLayout(); col.setSpacing(2)
         t = QLabel("Datasets")
-        t.setStyleSheet("font-size: 22px; font-weight: 800; color: #ffffff; background: transparent;")
+        t.setStyleSheet("font-size: 22px; font-weight: 800; color: #000000; background: transparent;")
         s = QLabel("Manage training, test, and reference datasets")
-        s.setStyleSheet("font-size: 11px; color: #9896c8; background: transparent;")
+        s.setStyleSheet("font-size: 11px; color: #888888; background: transparent;")
         col.addWidget(t); col.addWidget(s)
         ph.addLayout(col); ph.addStretch()
 
@@ -58,28 +58,28 @@ class DatasetsPage(QWidget):
             el = QVBoxLayout(empty_card); el.setContentsMargins(24, 32, 24, 32)
             empty_lbl = QLabel("No datasets loaded yet.\nUpload a CSV on the Upload & Analyze page to get started.")
             empty_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            empty_lbl.setStyleSheet("font-size: 13px; color: #5a5888; background: transparent;")
+            empty_lbl.setStyleSheet("font-size: 13px; color: #444444; background: transparent;")
             el.addWidget(empty_lbl)
             lay.addWidget(empty_card)
         else:
             summary_row = QHBoxLayout(); summary_row.setSpacing(14)
             for title, val, color in [
-                ("Total Datasets", str(len(data.DATASETS)), "#00e0b8"),
-                ("Total Records",  "—",                     "#b46cff"),
-                ("Storage Used",   "—",                     "#ffd400"),
-                ("Data Types",     "—",                     "#4d9fff"),
+                ("Total Datasets", str(len(data.DATASETS)), "#cccccc"),
+                ("Total Records",  "—",                     "#333333"),
+                ("Storage Used",   "—",                     "#888888"),
+                ("Data Types",     "—",                     "#aaaaaa"),
             ]:
                 card = Card(); card.setMinimumHeight(80); add_shadow(card)
                 cl = QVBoxLayout(card); cl.setContentsMargins(16, 12, 16, 12); cl.setSpacing(3)
                 vl = QLabel(val)
                 vl.setStyleSheet(f"font-size: 22px; font-weight: 800; color: {color}; background: transparent;")
                 nl = QLabel(title)
-                nl.setStyleSheet("font-size: 10px; color: #9896c8; background: transparent;")
+                nl.setStyleSheet("font-size: 10px; color: #888888; background: transparent;")
                 cl.addWidget(vl); cl.addWidget(nl)
                 summary_row.addWidget(card)
             lay.addLayout(summary_row)
 
-            TYPE_COLORS = {"Tabular": "#00e0b8", "Text": "#b46cff", "Image": "#ffd400"}
+            TYPE_COLORS = {"Tabular": "#555555", "Text": "#333333", "Image": "#777777"}
             TYPE_ICONS  = {"Tabular": "📊",       "Text": "📝",      "Image": "🖼"}
             grid_widget = QWidget(); grid_widget.setStyleSheet("background: transparent;")
             grid_lay = QVBoxLayout(grid_widget); grid_lay.setContentsMargins(0, 0, 0, 0); grid_lay.setSpacing(12)
@@ -87,7 +87,7 @@ class DatasetsPage(QWidget):
             for dataset in data.DATASETS:
                 card = Card(); add_shadow(card)
                 cl = QHBoxLayout(card); cl.setContentsMargins(18, 14, 18, 14); cl.setSpacing(16)
-                dtype = dataset["type"]; color = TYPE_COLORS.get(dtype, "#9896c8")
+                dtype = dataset["type"]; color = TYPE_COLORS.get(dtype, "#888888")
                 icon_box = QWidget(); icon_box.setFixedSize(46, 46)
                 icon_box.setStyleSheet(f"background: {color}22; border-radius: 10px; border: 1px solid {color}44;")
                 ib_lay = QVBoxLayout(icon_box); ib_lay.setContentsMargins(0, 0, 0, 0)
@@ -97,9 +97,9 @@ class DatasetsPage(QWidget):
                 ib_lay.addWidget(ic); cl.addWidget(icon_box)
                 info = QVBoxLayout(); info.setSpacing(3)
                 nm = QLabel(dataset["name"])
-                nm.setStyleSheet("font-size: 13px; font-weight: 700; color: #ffffff; background: transparent;")
+                nm.setStyleSheet("font-size: 13px; font-weight: 700; color: #000000; background: transparent;")
                 meta = QLabel(f"{dataset['rows']:,} rows  ·  {dataset['cols']} features  ·  {dataset['size']}")
-                meta.setStyleSheet("font-size: 10px; color: #9896c8; background: transparent;")
+                meta.setStyleSheet("font-size: 10px; color: #888888; background: transparent;")
                 info.addWidget(nm); info.addWidget(meta); cl.addLayout(info); cl.addStretch()
                 tb = QLabel(dtype)
                 tb.setStyleSheet(
@@ -111,9 +111,9 @@ class DatasetsPage(QWidget):
                     b = QPushButton(icon); b.setFixedSize(32, 32); b.setToolTip(tip)
                     b.setCursor(Qt.CursorShape.PointingHandCursor)
                     b.setStyleSheet(
-                        "QPushButton { background: rgba(255,255,255,0.05); border: 1px solid #3a3670; "
+                        "QPushButton { background: #f5f5f5; border: 1px solid #d8d8d8; "
                         "border-radius: 8px; font-size: 15px; }"
-                        "QPushButton:hover { background: rgba(180,108,255,0.2); border: 1px solid #b46cff55; }"
+                        "QPushButton:hover { background: #e8e8e8; border: 1px solid #cccccc; }"
                     )
                     cl.addWidget(b)
                 grid_lay.addWidget(card)

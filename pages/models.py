@@ -64,8 +64,8 @@ class DropZone(QWidget):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         w, h = self.width(), self.height()
 
-        accent = QColor("#b46cff") if self._hover else QColor("#b46cff55")
-        bg     = QColor("#b46cff18") if self._hover else QColor("#b46cff08")
+        accent = QColor("#333333") if self._hover else QColor("#aaaaaa")
+        bg     = QColor("#ebebeb") if self._hover else QColor("#f5f5f5")
 
         path = QPainterPath()
         path.addRoundedRect(2, 2, w - 4, h - 4, 14, 14)
@@ -77,13 +77,13 @@ class DropZone(QWidget):
         painter.drawPath(path)
 
         # Icon
-        painter.setPen(QColor("#b46cff"))
+        painter.setPen(QColor("#555555"))
         painter.setFont(QFont("Segoe UI", 22))
         painter.drawText(QRect(0, 0, w, h // 2), Qt.AlignmentFlag.AlignCenter, self._icon)
 
         # Text
         if self._filename:
-            painter.setPen(QColor("#00e0b8"))
+            painter.setPen(QColor("#cccccc"))
             painter.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
             painter.drawText(
                 QRect(0, h // 2, w, h // 2),
@@ -91,7 +91,7 @@ class DropZone(QWidget):
                 f"✓  {self._filename}"
             )
         else:
-            painter.setPen(QColor("#9896c8"))
+            painter.setPen(QColor("#888888"))
             painter.setFont(QFont("Segoe UI", 11))
             painter.drawText(
                 QRect(0, h // 2 - 10, w, 22),
@@ -99,7 +99,7 @@ class DropZone(QWidget):
                 self._label
             )
             painter.setFont(QFont("Segoe UI", 9))
-            painter.setPen(QColor("#6664a0"))
+            painter.setPen(QColor("#444444"))
             painter.drawText(
                 QRect(0, h // 2 + 14, w, 22),
                 Qt.AlignmentFlag.AlignCenter,
@@ -135,9 +135,9 @@ class ModelsPage(QWidget):
 
         # Header
         pg_title = QLabel("Model Import")
-        pg_title.setStyleSheet("font-size: 22px; font-weight: 800; color: #ffffff; background: transparent;")
+        pg_title.setStyleSheet("font-size: 22px; font-weight: 800; color: #000000; background: transparent;")
         pg_sub = QLabel("Upload model files, test datasets, and validation datasets")
-        pg_sub.setStyleSheet("font-size: 11px; color: #9896c8; background: transparent;")
+        pg_sub.setStyleSheet("font-size: 11px; color: #888888; background: transparent;")
         lay.addWidget(pg_title)
         lay.addWidget(pg_sub)
 
@@ -149,7 +149,7 @@ class ModelsPage(QWidget):
         uc_lay.setSpacing(14)
 
         uc_title = QLabel("Upload Files")
-        uc_title.setStyleSheet("font-size: 14px; font-weight: 700; color: #ffffff; background: transparent;")
+        uc_title.setStyleSheet("font-size: 14px; font-weight: 700; color: #000000; background: transparent;")
         uc_lay.addWidget(uc_title)
 
         zones_row = QHBoxLayout()
@@ -169,13 +169,13 @@ class ModelsPage(QWidget):
         fmt_row = QHBoxLayout()
         fmt_row.setSpacing(8)
         fmt_label = QLabel("Supported formats:")
-        fmt_label.setStyleSheet("font-size: 11px; color: #9896c8; background: transparent;")
+        fmt_label.setStyleSheet("font-size: 11px; color: #888888; background: transparent;")
         fmt_row.addWidget(fmt_label)
         for fmt in [".pkl", ".onnx", ".pt", ".h5", ".csv", ".parquet"]:
             badge = QLabel(fmt)
             badge.setStyleSheet(
-                "background: rgba(180,108,255,0.15); border: 1px solid #b46cff44; "
-                "border-radius: 6px; color: #b46cff; font-size: 11px; padding: 2px 8px;"
+                "background: #f0f0f0; border: 1px solid #d8d8d8; "
+                "border-radius: 6px; color: #333333; font-size: 11px; padding: 2px 8px;"
             )
             fmt_row.addWidget(badge)
         fmt_row.addStretch()
@@ -192,7 +192,7 @@ class ModelsPage(QWidget):
 
         mh = QHBoxLayout()
         mt = QLabel("Loaded Models")
-        mt.setStyleSheet("font-size: 14px; font-weight: 700; color: #ffffff; background: transparent;")
+        mt.setStyleSheet("font-size: 14px; font-weight: 700; color: #000000; background: transparent;")
         mh.addWidget(mt)
         mh.addStretch()
         btn_new = QPushButton("+ Import New")
@@ -205,33 +205,33 @@ class ModelsPage(QWidget):
         if not data.MODELS:
             empty = QLabel("No models loaded yet — use Upload & Analyze to import your first model.")
             empty.setStyleSheet(
-                "font-size: 12px; color: #5a5888; padding: 20px 0; background: transparent;"
+                "font-size: 12px; color: #444444; padding: 20px 0; background: transparent;"
             )
             empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
             ml_lay.addWidget(empty)
         else:
             STATUS_COLORS = {
-                "Production": "#00c97d", "Staging": "#ffd400",
-                "Testing": "#4d9fff",   "Retired": "#ff5577",
+                "Production": "#aaaaaa", "Staging": "#888888",
+                "Testing": "#aaaaaa",   "Retired": "#888888",
             }
             for model in data.MODELS:
                 row = QHBoxLayout(); row.setSpacing(12)
 
-                sc  = STATUS_COLORS.get(model["status"], "#9896c8")
+                sc  = STATUS_COLORS.get(model["status"], "#888888")
                 dot = QLabel("●")
                 dot.setStyleSheet(f"color: {sc}; font-size: 10px; background: transparent;")
                 row.addWidget(dot)
 
                 name = QLabel(model["name"])
-                name.setStyleSheet("font-size: 12px; font-weight: 600; color: #ffffff; background: transparent;")
+                name.setStyleSheet("font-size: 12px; font-weight: 600; color: #000000; background: transparent;")
                 row.addWidget(name, 2)
 
                 t = QLabel(model["type"])
-                t.setStyleSheet("font-size: 11px; color: #9896c8; background: transparent;")
+                t.setStyleSheet("font-size: 11px; color: #888888; background: transparent;")
                 row.addWidget(t, 1)
 
                 acc = QLabel(f"{model['accuracy']:.1f}%")
-                acc.setStyleSheet("font-size: 11px; color: #00e0b8; font-weight: 600; background: transparent;")
+                acc.setStyleSheet("font-size: 11px; color: #222222; font-weight: 600; background: transparent;")
                 row.addWidget(acc)
 
                 st_badge = QLabel(model["status"])
@@ -246,15 +246,15 @@ class ModelsPage(QWidget):
                     b.setFixedSize(30, 30); b.setToolTip(tip)
                     b.setCursor(Qt.CursorShape.PointingHandCursor)
                     b.setStyleSheet(
-                        "QPushButton { background: rgba(255,255,255,0.05); border: 1px solid #3a3670; "
+                        "QPushButton { background: #f5f5f5; border: 1px solid #d8d8d8; "
                         "border-radius: 8px; font-size: 14px; }"
-                        "QPushButton:hover { background: rgba(180,108,255,0.2); border: 1px solid #b46cff55; }"
+                        "QPushButton:hover { background: #e8e8e8; border: 1px solid #cccccc; }"
                     )
                     row.addWidget(b)
 
                 ml_lay.addLayout(row)
                 sep = QFrame(); sep.setFrameShape(QFrame.Shape.HLine)
-                sep.setStyleSheet("background: #2e2b5f; max-height: 1px;")
+                sep.setStyleSheet("background: #e0e0e0; max-height: 1px;")
                 ml_lay.addWidget(sep)
 
         lay.addWidget(models_card)

@@ -34,7 +34,7 @@ def _make_metric_card(name, value_str, color, icon):
     lay.addWidget(val_lbl)
 
     name_lbl = QLabel(name)
-    name_lbl.setStyleSheet("font-size: 11px; color: #9896c8; background: transparent;")
+    name_lbl.setStyleSheet("font-size: 11px; color: #888888; background: transparent;")
     lay.addWidget(name_lbl)
 
     add_shadow(card)
@@ -73,9 +73,9 @@ class MetricsPage(QWidget):
         ph = QHBoxLayout()
         col = QVBoxLayout(); col.setSpacing(2)
         t = QLabel("Model Metrics")
-        t.setStyleSheet("font-size: 22px; font-weight: 800; color: #ffffff; background: transparent;")
+        t.setStyleSheet("font-size: 22px; font-weight: 800; color: #000000; background: transparent;")
         self._sub_lbl = QLabel("Evaluation results  ·  Upload a model to see real metrics")
-        self._sub_lbl.setStyleSheet("font-size: 11px; color: #9896c8; background: transparent;")
+        self._sub_lbl.setStyleSheet("font-size: 11px; color: #888888; background: transparent;")
         col.addWidget(t); col.addWidget(self._sub_lbl)
         ph.addLayout(col); ph.addStretch()
 
@@ -95,11 +95,11 @@ class MetricsPage(QWidget):
         # ── Row 1: 5 metric pills ─────────────────────────────
         metrics_row = QHBoxLayout(); metrics_row.setSpacing(14)
         pill_configs = [
-            ("Accuracy",  "#00e0b8", "◎"),
-            ("Precision", "#b46cff", "▣"),
-            ("Recall",    "#ffd400", "◈"),
-            ("F1-Score",  "#00c97d", "⬡"),
-            ("ROC-AUC",   "#4d9fff", "◉"),
+            ("Accuracy",  "#cccccc", "◎"),
+            ("Precision", "#333333", "▣"),
+            ("Recall",    "#888888", "◈"),
+            ("F1-Score",  "#aaaaaa", "⬡"),
+            ("ROC-AUC",   "#aaaaaa", "◉"),
         ]
         for name, color, icon in pill_configs:
             card, lbl = _make_metric_card(name, "—", color, icon)
@@ -114,9 +114,9 @@ class MetricsPage(QWidget):
         cm_lay  = QVBoxLayout(cm_card)
         cm_lay.setContentsMargins(16, 14, 16, 14); cm_lay.setSpacing(8)
         cm_t = QLabel("Confusion Matrix")
-        cm_t.setStyleSheet("font-size: 13px; font-weight: 700; color: #ffffff; background: transparent;")
+        cm_t.setStyleSheet("font-size: 13px; font-weight: 700; color: #000000; background: transparent;")
         self._cm_sub = QLabel(f"Test Set · {len(data.CONFUSION_LABELS)} Classes")
-        self._cm_sub.setStyleSheet("font-size: 10px; color: #9896c8; background: transparent;")
+        self._cm_sub.setStyleSheet("font-size: 10px; color: #888888; background: transparent;")
         cm_lay.addWidget(cm_t); cm_lay.addWidget(self._cm_sub)
         self._cm_chart = ConfusionMatrixChart()
         cm_lay.addWidget(self._cm_chart)
@@ -126,9 +126,9 @@ class MetricsPage(QWidget):
         roc_lay  = QVBoxLayout(roc_card)
         roc_lay.setContentsMargins(16, 14, 16, 14); roc_lay.setSpacing(8)
         roc_t = QLabel("ROC Curve")
-        roc_t.setStyleSheet("font-size: 13px; font-weight: 700; color: #ffffff; background: transparent;")
+        roc_t.setStyleSheet("font-size: 13px; font-weight: 700; color: #000000; background: transparent;")
         self._roc_sub = QLabel("AUC = —")
-        self._roc_sub.setStyleSheet("font-size: 10px; color: #00e0b8; font-weight: 700; background: transparent;")
+        self._roc_sub.setStyleSheet("font-size: 10px; color: #222222; font-weight: 700; background: transparent;")
         roc_lay.addWidget(roc_t); roc_lay.addWidget(self._roc_sub)
         self._roc_chart = ROCCurveChart()
         roc_lay.addWidget(self._roc_chart)
@@ -138,9 +138,9 @@ class MetricsPage(QWidget):
         pr_lay  = QVBoxLayout(pr_card)
         pr_lay.setContentsMargins(16, 14, 16, 14); pr_lay.setSpacing(8)
         pr_t = QLabel("Precision–Recall Curve")
-        pr_t.setStyleSheet("font-size: 13px; font-weight: 700; color: #ffffff; background: transparent;")
+        pr_t.setStyleSheet("font-size: 13px; font-weight: 700; color: #000000; background: transparent;")
         self._pr_sub = QLabel("Average Precision = —")
-        self._pr_sub.setStyleSheet("font-size: 10px; color: #b46cff; font-weight: 700; background: transparent;")
+        self._pr_sub.setStyleSheet("font-size: 10px; color: #000000; font-weight: 700; background: transparent;")
         pr_lay.addWidget(pr_t); pr_lay.addWidget(self._pr_sub)
         self._pr_chart = PRCurveChart()
         pr_lay.addWidget(self._pr_chart)
@@ -154,7 +154,7 @@ class MetricsPage(QWidget):
         bl.setContentsMargins(20, 16, 20, 16); bl.setSpacing(12)
 
         bt = QLabel("Per-Class Performance Breakdown")
-        bt.setStyleSheet("font-size: 13px; font-weight: 700; color: #ffffff; background: transparent;")
+        bt.setStyleSheet("font-size: 13px; font-weight: 700; color: #000000; background: transparent;")
         bl.addWidget(bt)
 
         # Fixed header
@@ -162,14 +162,14 @@ class MetricsPage(QWidget):
         for col_name in ["Class", "Precision", "Recall", "F1", "Support"]:
             lbl = QLabel(col_name.upper())
             lbl.setStyleSheet(
-                "font-size: 10px; font-weight: 700; color: #5a5888; "
+                "font-size: 10px; font-weight: 700; color: #444444; "
                 "letter-spacing: 0.8px; background: transparent;"
             )
             hdr.addWidget(lbl, 1)
         bl.addLayout(hdr)
 
         sep = QFrame(); sep.setFrameShape(QFrame.Shape.HLine)
-        sep.setStyleSheet("background: #2e2b5f; max-height: 1px;")
+        sep.setStyleSheet("background: #e0e0e0; max-height: 1px;")
         bl.addWidget(sep)
 
         # Dynamic rows container
@@ -225,8 +225,8 @@ class MetricsPage(QWidget):
         self._rebuild_per_class(results.get("per_class", []))
 
     def _rebuild_per_class(self, per_class_data):
-        CLASS_COLORS = ["#00e0b8", "#b46cff", "#ffd400", "#ff5577",
-                        "#00c97d", "#4d9fff", "#ff8c42", "#9896c8"]
+        CLASS_COLORS = ["#555555", "#333333", "#888888", "#444444",
+                        "#666666", "#777777", "#888888", "#999999"]
 
         while self._per_class_lay.count():
             item = self._per_class_lay.takeAt(0)
@@ -237,7 +237,7 @@ class MetricsPage(QWidget):
             empty = QLabel("No data yet — upload a model and dataset to see per-class metrics.")
             empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
             empty.setStyleSheet(
-                "font-size: 12px; color: #5a5888; padding: 16px 0; background: transparent;"
+                "font-size: 12px; color: #444444; padding: 16px 0; background: transparent;"
             )
             self._per_class_lay.addWidget(empty)
             return
@@ -259,14 +259,14 @@ class MetricsPage(QWidget):
                 str(row_data["support"]),
             ]:
                 lbl = QLabel(val)
-                lbl.setStyleSheet("font-size: 11px; color: #e0dff5; background: transparent;")
+                lbl.setStyleSheet("font-size: 11px; color: #222222; background: transparent;")
                 row.addWidget(lbl, 1)
 
             self._per_class_lay.addLayout(row)
 
             if i < len(per_class_data) - 1:
                 sep = QFrame(); sep.setFrameShape(QFrame.Shape.HLine)
-                sep.setStyleSheet("background: #2a2855; max-height: 1px;")
+                sep.setStyleSheet("background: #e0e0e0; max-height: 1px;")
                 self._per_class_lay.addWidget(sep)
 
     @staticmethod

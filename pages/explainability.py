@@ -4,7 +4,7 @@ HandiAI — Explainability Page
 
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel,
-    QPushButton, QScrollArea, QFrame, QSizePolicy
+    QPushButton, QScrollArea, QFrame, QSizePolicy, QMessageBox
 )
 from PySide6.QtCore import Qt
 
@@ -43,9 +43,9 @@ class ExplainabilityPage(QWidget):
         # Header
         ph = QHBoxLayout()
         pg_title = QLabel("Explainability")
-        pg_title.setStyleSheet("font-size: 22px; font-weight: 800; color: #ffffff; background: transparent;")
+        pg_title.setStyleSheet("font-size: 22px; font-weight: 800; color: #000000; background: transparent;")
         pg_sub = QLabel("SHAP-based model interpretability for fraud_detector_v3")
-        pg_sub.setStyleSheet("font-size: 11px; color: #9896c8; background: transparent;")
+        pg_sub.setStyleSheet("font-size: 11px; color: #888888; background: transparent;")
         ph_col = QVBoxLayout(); ph_col.setSpacing(2)
         ph_col.addWidget(pg_title); ph_col.addWidget(pg_sub)
         ph.addLayout(ph_col); ph.addStretch()
@@ -53,6 +53,7 @@ class ExplainabilityPage(QWidget):
         btn.setObjectName("btn_primary")
         btn.setFixedHeight(36)
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn.clicked.connect(self._re_explain)
         ph.addWidget(btn)
         lay.addLayout(ph)
 
@@ -69,7 +70,7 @@ class ExplainabilityPage(QWidget):
 
         why_title = QLabel("WHY DID THE MODEL PREDICT THIS?")
         why_title.setStyleSheet(
-            "font-size: 11px; font-weight: 800; color: #b46cff; "
+            "font-size: 11px; font-weight: 800; color: #000000; "
             "letter-spacing: 1.5px; background: transparent;"
         )
         why_lay.addWidget(why_title)
@@ -82,7 +83,7 @@ class ExplainabilityPage(QWidget):
         placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
         placeholder.setWordWrap(True)
         placeholder.setStyleSheet(
-            "font-size: 12px; color: #5a5888; padding: 20px 8px; background: transparent;"
+            "font-size: 12px; color: #444444; padding: 20px 8px; background: transparent;"
         )
         why_lay.addWidget(placeholder)
 
@@ -96,7 +97,7 @@ class ExplainabilityPage(QWidget):
         wf_lay.setContentsMargins(16, 14, 16, 14)
         wf_lay.setSpacing(8)
         wf_title = QLabel("SHAP Waterfall Plot")
-        wf_title.setStyleSheet("font-size: 13px; font-weight: 700; color: #ffffff; background: transparent;")
+        wf_title.setStyleSheet("font-size: 13px; font-weight: 700; color: #000000; background: transparent;")
         wf_lay.addWidget(wf_title)
         self._wf_chart = SHAPWaterfallChart()
         wf_lay.addWidget(self._wf_chart)
@@ -114,7 +115,7 @@ class ExplainabilityPage(QWidget):
         fl.setContentsMargins(16, 14, 16, 14)
         fl.setSpacing(8)
         ft = QLabel("Feature Importance (Global)")
-        ft.setStyleSheet("font-size: 13px; font-weight: 700; color: #ffffff; background: transparent;")
+        ft.setStyleSheet("font-size: 13px; font-weight: 700; color: #000000; background: transparent;")
         fl.addWidget(ft)
         self._fi_chart = FeatureImportanceChart()
         fl.addWidget(self._fi_chart)
@@ -127,7 +128,7 @@ class ExplainabilityPage(QWidget):
         ll.setContentsMargins(16, 14, 16, 14)
         ll.setSpacing(8)
         lt = QLabel("Local SHAP Values — This Prediction")
-        lt.setStyleSheet("font-size: 13px; font-weight: 700; color: #ffffff; background: transparent;")
+        lt.setStyleSheet("font-size: 13px; font-weight: 700; color: #000000; background: transparent;")
         ll.addWidget(lt)
         self._shap_bars = SHAPBarChart(data.SHAP_FEATURES)
         ll.addWidget(self._shap_bars)
@@ -140,6 +141,13 @@ class ExplainabilityPage(QWidget):
     def _connect_engine(self):
         self.engine.shap_updated.connect(self._on_shap)
         self._on_shap(self.engine.snapshot_shap())
+
+    def _re_explain(self):
+        if self.engine:
+            self._on_shap(self.engine.snapshot_shap())
+        else:
+            QMessageBox.information(self, "Re-Explain",
+                "Upload a model and dataset to generate SHAP explanations.")
 
     def _on_shap(self, features):
         self._wf_chart.update_features(features)

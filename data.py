@@ -5,20 +5,20 @@ the user uploads a real model + dataset via Upload & Analyze.
 """
 
 # ── Colour palette constants ──────────────────────────────────────────────────
-PURPLE  = "#b46cff"
-CYAN    = "#00e0b8"
-YELLOW  = "#ffd400"
-RED     = "#ff5577"
-GREEN   = "#00c97d"
-BLUE    = "#4d9fff"
-ORANGE  = "#ff8c42"
+PURPLE  = "#ffffff"
+CYAN    = "#cccccc"
+YELLOW  = "#888888"
+RED     = "#ffffff"
+GREEN   = "#aaaaaa"
+BLUE    = "#aaaaaa"
+ORANGE  = "#888888"
 
 # ── Summary Metrics (shown on Dashboard) ─────────────────────────────────────
 SUMMARY_METRICS = [
-    {"title": "Models Loaded",       "value": "—", "trend": "Upload a model",   "color": PURPLE, "icon": "⬡"},
-    {"title": "Prediction Accuracy", "value": "—", "trend": "No data yet",      "color": CYAN,   "icon": "◎"},
-    {"title": "Production Requests", "value": "—", "trend": "No data yet",      "color": YELLOW, "icon": "⚡"},
-    {"title": "Detected Drift",      "value": "—", "trend": "No data yet",      "color": GREEN,  "icon": "◈"},
+    {"title": "Models Loaded",       "value": "—", "trend": "Upload a model",   "color": "#aaaaaa", "icon": "M"},
+    {"title": "Prediction Accuracy", "value": "—", "trend": "No data yet",      "color": "#aaaaaa", "icon": "A"},
+    {"title": "Production Requests", "value": "—", "trend": "No data yet",      "color": "#aaaaaa", "icon": "R"},
+    {"title": "Detected Drift",      "value": "—", "trend": "No data yet",      "color": "#aaaaaa", "icon": "D"},
 ]
 
 # ── Model registry ────────────────────────────────────────────────────────────

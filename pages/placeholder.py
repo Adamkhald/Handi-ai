@@ -24,12 +24,12 @@ class PlaceholderPage(QWidget):
 
         t = QLabel(title)
         t.setStyleSheet(
-            "font-size: 22px; font-weight: 800; color: #ffffff; background: transparent;"
+            "font-size: 22px; font-weight: 800; color: #000000; background: transparent;"
         )
         t.setAlignment(Qt.AlignmentFlag.AlignCenter)
         lay.addWidget(t)
 
         s = QLabel(subtitle)
-        s.setStyleSheet("font-size: 13px; color: #9896c8; background: transparent;")
+        s.setStyleSheet("font-size: 13px; color: #888888; background: transparent;")
         s.setAlignment(Qt.AlignmentFlag.AlignCenter)
         lay.addWidget(s)

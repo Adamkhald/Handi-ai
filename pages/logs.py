@@ -2,11 +2,12 @@
 HandiAI — Production Logs Page
 """
 
+import csv
 import random
 from datetime import datetime, timedelta
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QScrollArea, QFrame, QTextEdit, QComboBox, QLineEdit
+    QScrollArea, QFrame, QTextEdit, QComboBox, QLineEdit, QFileDialog, QMessageBox
 )
 from PySide6.QtCore import Qt, QTimer
 
@@ -45,15 +46,16 @@ class ProductionLogsPage(QWidget):
         ph = QHBoxLayout()
         col = QVBoxLayout(); col.setSpacing(2)
         t = QLabel("Production Logs")
-        t.setStyleSheet("font-size: 22px; font-weight: 800; color: #ffffff; background: transparent;")
+        t.setStyleSheet("font-size: 22px; font-weight: 800; color: #000000; background: transparent;")
         s = QLabel("Real-time prediction logs, audit trail and SHAP explanations")
-        s.setStyleSheet("font-size: 11px; color: #9896c8; background: transparent;")
+        s.setStyleSheet("font-size: 11px; color: #888888; background: transparent;")
         col.addWidget(t); col.addWidget(s)
         ph.addLayout(col); ph.addStretch()
         export_btn = QPushButton("⬇  Export CSV")
         export_btn.setObjectName("btn_secondary")
         export_btn.setFixedHeight(36)
         export_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        export_btn.clicked.connect(self._export_csv)
         ph.addWidget(export_btn)
         lay.addLayout(ph)
 
@@ -64,16 +66,17 @@ class ProductionLogsPage(QWidget):
         fl.setContentsMargins(16, 10, 16, 10)
         fl.setSpacing(12)
 
-        search = QLineEdit()
-        search.setPlaceholderText("Filter logs…")
-        search.setFixedHeight(34)
-        search.setStyleSheet(
-            "QLineEdit { background: #1d1b3a; border: 1px solid #3a3670; border-radius: 8px; "
-            "padding: 0 12px; color: #e0dff5; font-size: 12px; }"
-            "QLineEdit:focus { border: 1px solid #b46cff; }"
+        self._search = QLineEdit()
+        self._search.setPlaceholderText("Filter logs…")
+        self._search.setFixedHeight(34)
+        self._search.setStyleSheet(
+            "QLineEdit { background: #f2f2f2; border: 1px solid #d8d8d8; border-radius: 8px; "
+            "padding: 0 12px; color: #222222; font-size: 12px; }"
+            "QLineEdit:focus { border: 1px solid #888888; }"
         )
-        fl.addWidget(search, 2)
+        fl.addWidget(self._search, 2)
 
+        self._filter_combos = []
         for label, items in [
             ("Model", ["All Models"] + [m["name"] for m in data.MODELS[:5]]),
             ("Prediction", ["All", "Fraud", "Normal", "Anomaly", "High-Risk"]),
@@ -84,11 +87,13 @@ class ProductionLogsPage(QWidget):
                 combo.addItem(item)
             combo.setFixedHeight(34)
             fl.addWidget(combo, 1)
+            self._filter_combos.append(combo)
 
         clr_btn = QPushButton("Clear Filters")
         clr_btn.setObjectName("btn_secondary")
         clr_btn.setFixedHeight(34)
         clr_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        clr_btn.clicked.connect(self._clear_filters)
         fl.addWidget(clr_btn)
         lay.addWidget(filter_card)
 
@@ -101,7 +106,7 @@ class ProductionLogsPage(QWidget):
 
         # Log header bar
         log_hdr = QWidget()
-        log_hdr.setStyleSheet("background: #26234d; border-radius: 16px 16px 0 0;")
+        log_hdr.setStyleSheet("background: #f0f0f0; border-radius: 16px 16px 0 0;")
         lh_lay = QHBoxLayout(log_hdr)
         lh_lay.setContentsMargins(18, 10, 18, 10)
         lh_lay.setSpacing(16)
@@ -110,7 +115,7 @@ class ProductionLogsPage(QWidget):
             lbl = QLabel(col_name)
             lbl.setFixedWidth(w)
             lbl.setStyleSheet(
-                "font-size: 9px; font-weight: 700; color: #5a5888; "
+                "font-size: 9px; font-weight: 700; color: #444444; "
                 "letter-spacing: 1px; background: transparent;"
             )
             lh_lay.addWidget(lbl)
@@ -118,7 +123,7 @@ class ProductionLogsPage(QWidget):
         ll.addWidget(log_hdr)
 
         sep = QFrame(); sep.setFrameShape(QFrame.Shape.HLine)
-        sep.setStyleSheet("background: #2e2b5f; max-height: 1px;")
+        sep.setStyleSheet("background: #e0e0e0; max-height: 1px;")
         ll.addWidget(sep)
 
         # Scrollable rows area
@@ -139,7 +144,7 @@ class ProductionLogsPage(QWidget):
         self._empty_lbl = QLabel("No predictions yet — upload a model and dataset to see real logs here.")
         self._empty_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._empty_lbl.setStyleSheet(
-            "font-size: 12px; color: #5a5888; padding: 32px 0; background: transparent;"
+            "font-size: 12px; color: #444444; padding: 32px 0; background: transparent;"
         )
         self._rows_lay.addWidget(self._empty_lbl)
         self._rows_lay.addStretch()
@@ -152,24 +157,24 @@ class ProductionLogsPage(QWidget):
 
     def _add_log_row(self, entry, insert_at_top=False):
         PRED_COLORS = {
-            "Fraud":     "#ff5577",
-            "Normal":    "#00c97d",
-            "Anomaly":   "#ffd400",
-            "High-Risk": "#ff8c42",
+            "Fraud":     "#111111",
+            "Normal":    "#aaaaaa",
+            "Anomaly":   "#888888",
+            "High-Risk": "#888888",
         }
         pred = entry["predicted"]
-        pc   = PRED_COLORS.get(pred, "#9896c8")
+        pc   = PRED_COLORS.get(pred, "#888888")
 
         row_widget = QWidget()
         row_widget.setStyleSheet(
             "QWidget { background: transparent; }"
-            "QWidget:hover { background: rgba(180,108,255,0.06); }"
+            "QWidget:hover { background: rgba(0,0,0,0.04); }"
         )
         row_lay = QHBoxLayout(row_widget)
         row_lay.setContentsMargins(18, 8, 18, 8)
         row_lay.setSpacing(16)
 
-        def cell(text, width, color="#9896c8", bold=False):
+        def cell(text, width, color="#888888", bold=False):
             lbl = QLabel(text)
             lbl.setFixedWidth(width)
             weight = "font-weight: 600;" if bold else ""
@@ -182,23 +187,23 @@ class ProductionLogsPage(QWidget):
         row_lay.addWidget(cell(entry["model"][:22], 160))
         pred_lbl = cell(pred, 90, pc, True)
         row_lay.addWidget(pred_lbl)
-        row_lay.addWidget(cell(f"{entry['confidence']:.1f}%", 90, "#00e0b8", True))
-        lat_color = "#00c97d" if entry["latency_ms"] < 50 else ("#ffd400" if entry["latency_ms"] < 100 else "#ff5577")
+        row_lay.addWidget(cell(f"{entry['confidence']:.1f}%", 90, "#cccccc", True))
+        lat_color = "#888888" if entry["latency_ms"] < 50 else ("#555555" if entry["latency_ms"] < 100 else "#111111")
         row_lay.addWidget(cell(f"{entry['latency_ms']:.0f} ms", 80, lat_color))
 
         drift_lbl = QLabel("⚑ Yes" if entry.get("drift_flag") else "—")
         drift_lbl.setFixedWidth(60)
         drift_lbl.setStyleSheet(
-            f"font-size: 11px; color: {'#ffd400' if entry.get('drift_flag') else '#3a3670'}; background: transparent;"
+            f"font-size: 11px; color: {'#888888' if entry.get('drift_flag') else '#2a2a2a'}; background: transparent;"
         )
         row_lay.addWidget(drift_lbl)
 
         feats = ", ".join(entry.get("top_features", [])[:2])
-        row_lay.addWidget(cell(feats, 200, "#6664a0"))
+        row_lay.addWidget(cell(feats, 200, "#444444"))
         row_lay.addStretch()
 
         sep = QFrame(); sep.setFrameShape(QFrame.Shape.HLine)
-        sep.setStyleSheet("background: #26234d; max-height: 1px;")
+        sep.setStyleSheet("background: #f0f0f0; max-height: 1px;")
 
         if insert_at_top:
             self._rows_lay.insertWidget(0, sep)
@@ -208,14 +213,38 @@ class ProductionLogsPage(QWidget):
             self._rows_lay.addWidget(sep)
             
     def _on_log(self, entry):
+        if not hasattr(self, "_log_entries"):
+            self._log_entries = []
+        self._log_entries.insert(0, entry)
+        if len(self._log_entries) > 500:
+            self._log_entries = self._log_entries[:500]
         if hasattr(self, "_empty_lbl") and self._empty_lbl.isVisible():
             self._empty_lbl.hide()
         self._add_log_row(entry, insert_at_top=True)
-        # trim if too many
         if self._rows_lay.count() > 100:
-            # remove bottom elements (excluding the final stretch)
             w1 = self._rows_lay.takeAt(self._rows_lay.count() - 2)
             w2 = self._rows_lay.takeAt(self._rows_lay.count() - 2)
             if w1 and w1.widget(): w1.widget().deleteLater()
             if w2 and w2.widget(): w2.widget().deleteLater()
+
+    def _clear_filters(self):
+        self._search.clear()
+        for combo in self._filter_combos:
+            combo.setCurrentIndex(0)
+
+    def _export_csv(self):
+        entries = getattr(self, "_log_entries", [])
+        if not entries:
+            QMessageBox.information(self, "Export CSV", "No log entries to export yet.")
+            return
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Export Logs", "production_logs.csv", "CSV Files (*.csv)")
+        if not path:
+            return
+        fields = ["timestamp", "model", "predicted", "confidence", "latency_ms", "drift_flag"]
+        with open(path, "w", newline="", encoding="utf-8") as f:
+            w = csv.DictWriter(f, fieldnames=fields, extrasaction="ignore")
+            w.writeheader()
+            w.writerows(entries)
+        QMessageBox.information(self, "Export CSV", f"Saved {len(entries)} rows to:\n{path}")
 

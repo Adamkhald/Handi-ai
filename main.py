@@ -26,14 +26,9 @@ from ui.topbar  import TopBar
 from pages.dashboard     import DashboardPage
 from pages.upload        import UploadPage
 from pages.models        import ModelsPage
-from pages.datasets      import DatasetsPage
 from pages.explainability import ExplainabilityPage
 from pages.monitoring    import MonitoringPage
-from pages.drift         import DriftDetectionPage
-from pages.metrics       import MetricsPage
 from pages.logs          import ProductionLogsPage
-from pages.reports       import ReportsPage
-from pages.settings      import SettingsPage
 
 from engine import DataEngine
 
@@ -83,6 +78,7 @@ class HandiAIMainWindow(QMainWindow):
         right_lay.setSpacing(0)
 
         self._topbar = TopBar()
+        self._topbar.page_requested.connect(self._switch_page)
         right_lay.addWidget(self._topbar)
 
         # ── Live Data Engine ─────────────────────────────────
@@ -93,17 +89,12 @@ class HandiAIMainWindow(QMainWindow):
         self._stack.setObjectName("centralWidget")
 
         self._pages = [
-            DashboardPage(self.engine),       # 0
-            UploadPage(self.engine),          # 1  — upload & analyze
+            DashboardPage(self.engine, navigate_fn=self._switch_page),  # 0
+            UploadPage(self.engine),          # 1
             ModelsPage(),                     # 2
-            DatasetsPage(),                   # 3
-            ExplainabilityPage(self.engine),  # 4
-            MonitoringPage(self.engine),      # 5
-            DriftDetectionPage(self.engine),  # 6
-            MetricsPage(self.engine),         # 7
-            ProductionLogsPage(self.engine),  # 8
-            ReportsPage(),                    # 9
-            SettingsPage(),                   # 10
+            ExplainabilityPage(self.engine),  # 3
+            MonitoringPage(self.engine),      # 4
+            ProductionLogsPage(self.engine),  # 5
         ]
         for page in self._pages:
             self._stack.addWidget(page)
@@ -111,8 +102,15 @@ class HandiAIMainWindow(QMainWindow):
         right_lay.addWidget(self._stack, 1)
         root_lay.addWidget(right, 1)
 
+    _PAGE_TITLES = [
+        "Dashboard", "Upload & Analyze", "Models",
+        "Explainability", "Monitoring", "Production Logs",
+    ]
+
     def _switch_page(self, index: int):
         self._stack.setCurrentIndex(index)
+        self._sidebar._select(index)
+        self._topbar.set_title(self._PAGE_TITLES[index])
 
 
 # ─────────────────────────────────────────────────────────────
@@ -131,16 +129,16 @@ def main():
 
     # Dark palette base (QSS overrides most of it)
     palette = QPalette()
-    palette.setColor(QPalette.ColorRole.Window,          QColor("#1d1b3a"))
-    palette.setColor(QPalette.ColorRole.WindowText,      QColor("#e0dff5"))
-    palette.setColor(QPalette.ColorRole.Base,            QColor("#26234d"))
-    palette.setColor(QPalette.ColorRole.AlternateBase,   QColor("#2a2855"))
-    palette.setColor(QPalette.ColorRole.ToolTipBase,     QColor("#26234d"))
-    palette.setColor(QPalette.ColorRole.ToolTipText,     QColor("#e0dff5"))
-    palette.setColor(QPalette.ColorRole.Text,            QColor("#e0dff5"))
-    palette.setColor(QPalette.ColorRole.Button,          QColor("#26234d"))
-    palette.setColor(QPalette.ColorRole.ButtonText,      QColor("#e0dff5"))
-    palette.setColor(QPalette.ColorRole.Highlight,       QColor("#b46cff"))
+    palette.setColor(QPalette.ColorRole.Window,          QColor("#ffffff"))
+    palette.setColor(QPalette.ColorRole.WindowText,      QColor("#111111"))
+    palette.setColor(QPalette.ColorRole.Base,            QColor("#f8f8f8"))
+    palette.setColor(QPalette.ColorRole.AlternateBase,   QColor("#f2f2f2"))
+    palette.setColor(QPalette.ColorRole.ToolTipBase,     QColor("#f8f8f8"))
+    palette.setColor(QPalette.ColorRole.ToolTipText,     QColor("#333333"))
+    palette.setColor(QPalette.ColorRole.Text,            QColor("#111111"))
+    palette.setColor(QPalette.ColorRole.Button,          QColor("#f0f0f0"))
+    palette.setColor(QPalette.ColorRole.ButtonText,      QColor("#111111"))
+    palette.setColor(QPalette.ColorRole.Highlight,       QColor("#111111"))
     palette.setColor(QPalette.ColorRole.HighlightedText, QColor("#ffffff"))
     app.setPalette(palette)
 

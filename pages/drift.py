@@ -5,7 +5,7 @@ HandiAI — Drift Detection Page
 import random
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QScrollArea, QFrame, QProgressBar
+    QScrollArea, QFrame, QProgressBar, QMessageBox
 )
 from PySide6.QtCore import Qt
 
@@ -42,33 +42,35 @@ class DriftDetectionPage(QWidget):
 
         # Header
         t = QLabel("Drift Detection")
-        t.setStyleSheet("font-size: 22px; font-weight: 800; color: #ffffff; background: transparent;")
+        t.setStyleSheet("font-size: 22px; font-weight: 800; color: #000000; background: transparent;")
         s = QLabel("Monitor statistical drift across features and models in production")
-        s.setStyleSheet("font-size: 11px; color: #9896c8; background: transparent;")
+        s.setStyleSheet("font-size: 11px; color: #888888; background: transparent;")
         lay.addWidget(t); lay.addWidget(s)
 
         # ── Overall Drift Status Banner ───────────────────────
         banner = QWidget()
         banner.setStyleSheet(
-            "background: rgba(0,201,125,0.1); border: 1px solid #00c97d44; border-radius: 12px;"
+            "background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 12px;"
         )
         bl = QHBoxLayout(banner)
         bl.setContentsMargins(20, 14, 20, 14)
         bl.setSpacing(16)
         icon = QLabel("✓")
-        icon.setStyleSheet("font-size: 24px; color: #00c97d; background: transparent;")
+        icon.setStyleSheet("font-size: 24px; color: #555555; background: transparent;")
         bl.addWidget(icon)
         col = QVBoxLayout(); col.setSpacing(2)
         bt = QLabel("Overall Drift Status: LOW")
-        bt.setStyleSheet("font-size: 14px; font-weight: 700; color: #00c97d; background: transparent;")
+        bt.setStyleSheet("font-size: 14px; font-weight: 700; color: #555555; background: transparent;")
         bs = QLabel("No significant drift detected across 12 production models · Last check: 2 min ago")
-        bs.setStyleSheet("font-size: 11px; color: #9896c8; background: transparent;")
+        bs.setStyleSheet("font-size: 11px; color: #888888; background: transparent;")
         col.addWidget(bt); col.addWidget(bs)
         bl.addLayout(col); bl.addStretch()
         run_btn = QPushButton("↺  Run Drift Check")
         run_btn.setObjectName("btn_primary")
         run_btn.setFixedHeight(34)
         run_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        run_btn.clicked.connect(lambda: QMessageBox.information(
+            self, "Drift Check", "Running drift analysis…\nUpload a model and dataset to see real drift results."))
         bl.addWidget(run_btn)
         lay.addWidget(banner)
 
@@ -81,10 +83,10 @@ class DriftDetectionPage(QWidget):
 
         fh = QHBoxLayout()
         ft = QLabel("Feature Drift Analysis")
-        ft.setStyleSheet("font-size: 13px; font-weight: 700; color: #ffffff; background: transparent;")
+        ft.setStyleSheet("font-size: 13px; font-weight: 700; color: #000000; background: transparent;")
         fh.addWidget(ft); fh.addStretch()
         thresh_lbl = QLabel("Threshold: 0.15")
-        thresh_lbl.setStyleSheet("font-size: 11px; color: #ffd400; font-weight: 600; background: transparent;")
+        thresh_lbl.setStyleSheet("font-size: 11px; color: #888888; font-weight: 600; background: transparent;")
         fh.addWidget(thresh_lbl)
         fl.addLayout(fh)
 
@@ -93,14 +95,14 @@ class DriftDetectionPage(QWidget):
         for col_name in ["Feature", "PSI Score", "KS Stat", "Drift %", "Status", "Trend"]:
             lbl = QLabel(col_name.upper())
             lbl.setStyleSheet(
-                "font-size: 10px; font-weight: 700; color: #5a5888; "
+                "font-size: 10px; font-weight: 700; color: #444444; "
                 "letter-spacing: 0.8px; background: transparent;"
             )
             hdr.addWidget(lbl, 2 if col_name == "Feature" else 1)
         fl.addLayout(hdr)
 
         sep = QFrame(); sep.setFrameShape(QFrame.Shape.HLine)
-        sep.setStyleSheet("background: #2e2b5f; max-height: 1px;")
+        sep.setStyleSheet("background: #e0e0e0; max-height: 1px;")
         fl.addWidget(sep)
 
         # Dynamic rows container
@@ -117,7 +119,7 @@ class DriftDetectionPage(QWidget):
         )
         self._feat_empty_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._feat_empty_lbl.setStyleSheet(
-            "font-size: 12px; color: #5a5888; padding: 16px 0; background: transparent;"
+            "font-size: 12px; color: #444444; padding: 16px 0; background: transparent;"
         )
         self._feat_rows_lay.addWidget(self._feat_empty_lbl)
 
@@ -131,7 +133,7 @@ class DriftDetectionPage(QWidget):
         ml.setSpacing(10)
 
         mth = QLabel("Model-Level Drift Scores")
-        mth.setStyleSheet("font-size: 13px; font-weight: 700; color: #ffffff; background: transparent;")
+        mth.setStyleSheet("font-size: 13px; font-weight: 700; color: #000000; background: transparent;")
         ml.addWidget(mth)
 
         self._model_drift_bars = {}
@@ -139,13 +141,13 @@ class DriftDetectionPage(QWidget):
 
         for model in data.MODELS[:8]:
             drift_val = model["drift"]
-            color = "#00c97d" if drift_val < 0.05 else ("#ffd400" if drift_val < 0.12 else "#ff5577")
+            color = "#aaaaaa" if drift_val < 0.05 else ("#888888" if drift_val < 0.12 else "#333333")
             row = QHBoxLayout()
             row.setSpacing(12)
 
             nm = QLabel(model["name"])
             nm.setFixedWidth(200)
-            nm.setStyleSheet("font-size: 12px; color: #e0dff5; background: transparent;")
+            nm.setStyleSheet("font-size: 12px; color: #222222; background: transparent;")
             row.addWidget(nm)
 
             bar = QProgressBar()
@@ -154,7 +156,7 @@ class DriftDetectionPage(QWidget):
             bar.setFixedHeight(8)
             bar.setTextVisible(False)
             bar.setStyleSheet(
-                f"QProgressBar {{ background: #2e2b5f; border-radius: 4px; border: none; }}"
+                f"QProgressBar {{ background: #e0e0e0; border-radius: 4px; border: none; }}"
                 f"QProgressBar::chunk {{ background: {color}; border-radius: 4px; }}"
             )
             row.addWidget(bar, 1)
@@ -184,9 +186,9 @@ class DriftDetectionPage(QWidget):
 
     def _rebuild_feat_table(self, drift_data):
         STATUS_MAP = {
-            "Stable":  ("#00c97d", "✓"),
-            "Monitor": ("#ffd400", "⚠"),
-            "Warning": ("#ff5577", "⚑"),
+            "Stable":  ("#aaaaaa", "✓"),
+            "Monitor": ("#888888", "⚠"),
+            "Warning": ("#333333", "⚑"),
         }
         while self._feat_rows_lay.count():
             item = self._feat_rows_lay.takeAt(0)
@@ -201,12 +203,12 @@ class DriftDetectionPage(QWidget):
 
         for idx, d in enumerate(drift_data):
             status = d.get("status", "Stable")
-            sc, si = STATUS_MAP.get(status, ("#9896c8", "—"))
+            sc, si = STATUS_MAP.get(status, ("#888888", "—"))
             row = QHBoxLayout(); row.setSpacing(0)
 
             name_lbl = QLabel(d["feature"])
             name_lbl.setStyleSheet(
-                "font-size: 12px; font-weight: 600; color: #e0dff5; background: transparent;"
+                "font-size: 12px; font-weight: 600; color: #222222; background: transparent;"
             )
             row.addWidget(name_lbl, 2)
 
@@ -215,7 +217,7 @@ class DriftDetectionPage(QWidget):
             row.addWidget(psi_lbl, 1)
 
             ks_lbl = QLabel(f"{d['ks']:.3f}")
-            ks_lbl.setStyleSheet("font-size: 11px; color: #9896c8; background: transparent;")
+            ks_lbl.setStyleSheet("font-size: 11px; color: #888888; background: transparent;")
             row.addWidget(ks_lbl, 1)
 
             dp_lbl = QLabel(f"{d['drift_pct']:.1f}%")
@@ -238,7 +240,7 @@ class DriftDetectionPage(QWidget):
 
             if idx < len(drift_data) - 1:
                 sep = QFrame(); sep.setFrameShape(QFrame.Shape.HLine)
-                sep.setStyleSheet("background: #2a2855; max-height: 1px;")
+                sep.setStyleSheet("background: #e0e0e0; max-height: 1px;")
                 self._feat_rows_lay.addWidget(sep)
 
     def _on_model_drift(self, drifts):
@@ -247,9 +249,9 @@ class DriftDetectionPage(QWidget):
                 bar = self._model_drift_bars[name]
                 lbl = self._model_drift_labels[name]
                 
-                color = "#00c97d" if val < 0.05 else ("#ffd400" if val < 0.12 else "#ff5577")
+                color = "#aaaaaa" if val < 0.05 else ("#888888" if val < 0.12 else "#333333")
                 bar.setStyleSheet(
-                    f"QProgressBar {{ background: #2e2b5f; border-radius: 4px; border: none; }}"
+                    f"QProgressBar {{ background: #e0e0e0; border-radius: 4px; border: none; }}"
                     f"QProgressBar::chunk {{ background: {color}; border-radius: 4px; }}"
                 )
                 bar.setValue(int(val * 1000))

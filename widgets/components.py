@@ -52,8 +52,8 @@ class Card(QFrame):
         path = QPainterPath()
         path.addRoundedRect(rect, 16, 16)
         painter.setClipPath(path)
-        painter.fillPath(path, QBrush(QColor("#2a2855")))
-        painter.setPen(QPen(QColor("#3a3670"), 1))
+        painter.fillPath(path, QBrush(QColor("#f8f8f8")))
+        painter.setPen(QPen(QColor("#e8e8e8"), 1))
         painter.drawPath(path)
         painter.end()
         super().paintEvent(event)
@@ -98,10 +98,11 @@ class AnimatedValueLabel(QLabel):
 # ─────────────────────────────────────────────────────────────
 class MetricCard(Card):
     def __init__(self, title, value, trend, icon, accent_color,
-                 fmt_fn=None, parent=None):
+                 fmt_fn=None, on_click=None, parent=None):
         super().__init__(parent)
         self.accent   = QColor(accent_color)
         self._fmt_fn  = fmt_fn
+        self._on_click = on_click
         self.setMinimumHeight(110)
         self._setup_ui(title, value, trend, icon, accent_color)
 
@@ -134,9 +135,9 @@ class MetricCard(Card):
         f = self._val_lbl.font()
         f.setPointSize(22); f.setWeight(QFont.Weight.Bold)
         self._val_lbl.setFont(f)
-        self._val_lbl.setStyleSheet("color: #ffffff; background: transparent;")
+        self._val_lbl.setStyleSheet("color: #111111; background: transparent;")
 
-        self._title_lbl = make_label(title, size=11, color="#9896c8")
+        self._title_lbl = make_label(title, size=11, color="#888888")
         self._trend_lbl = make_label(trend, size=10, color=accent)
 
         text_col.addStretch()
@@ -151,6 +152,8 @@ class MetricCard(Card):
         btn.setObjectName("btn_icon")
         btn.setFixedSize(32, 32)
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        if self._on_click:
+            btn.clicked.connect(self._on_click)
         layout.addWidget(btn, alignment=Qt.AlignmentFlag.AlignVCenter)
 
     # ── Public update API ──────────────────────────────────────
@@ -213,36 +216,24 @@ class CircularGauge(QWidget):
         margin = 18
         rect = QRect(margin, margin, s - 2*margin, s - 2*margin)
 
-        pen = QPen(QColor("#2e2b5f"), 14, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap)
+        pen = QPen(QColor("#e8e8e8"), 14, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap)
         painter.setPen(pen)
         painter.drawArc(rect, -225 * 16, -270 * 16)
 
-        span   = int(-270 * 16 * self._value / 100)
-        conic  = QConicalGradient(rect.center(), 135)
-        conic.setColorAt(0.0, QColor("#00e0b8"))
-        conic.setColorAt(0.5, QColor("#b46cff"))
-        conic.setColorAt(1.0, QColor("#00e0b8"))
+        span    = int(-270 * 16 * self._value / 100)
+        conic   = QConicalGradient(rect.center(), 135)
+        conic.setColorAt(0.0, QColor("#888888"))
+        conic.setColorAt(0.5, QColor("#111111"))
+        conic.setColorAt(1.0, QColor("#888888"))
         arc_pen = QPen(QBrush(conic), 14, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap)
         painter.setPen(arc_pen)
         painter.drawArc(rect, -225 * 16, span)
 
-        if self._value > 1:
-            angle_deg = -225 + 270 * self._value / 100
-            angle_rad = math.radians(angle_deg)
-            cx = rect.center().x() + (rect.width()  / 2) * math.cos(angle_rad)
-            cy = rect.center().y() - (rect.height() / 2) * math.sin(angle_rad)
-            painter.setPen(Qt.PenStyle.NoPen)
-            glow = QRadialGradient(cx, cy, 10)
-            glow.setColorAt(0, QColor("#b46cffcc"))
-            glow.setColorAt(1, QColor("#b46cff00"))
-            painter.setBrush(glow)
-            painter.drawEllipse(int(cx-10), int(cy-10), 20, 20)
-
-        painter.setPen(QColor("#ffffff"))
+        painter.setPen(QColor("#111111"))
         painter.setFont(QFont("Segoe UI", 28, QFont.Weight.Bold))
         painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, f"{self._value:.1f}%")
 
-        painter.setPen(QColor("#9896c8"))
+        painter.setPen(QColor("#888888"))
         painter.setFont(QFont("Segoe UI", 9))
         lbl_rect = QRect(rect.left(), rect.center().y() + 20, rect.width(), 20)
         painter.drawText(lbl_rect, Qt.AlignmentFlag.AlignCenter, self._label)
@@ -253,7 +244,7 @@ class CircularGauge(QWidget):
 #  Sparkline Widget  (dynamic data update)
 # ─────────────────────────────────────────────────────────────
 class Sparkline(QWidget):
-    def __init__(self, data_points, color="#00e0b8", fill=True, parent=None):
+    def __init__(self, data_points, color="#cccccc", fill=True, parent=None):
         super().__init__(parent)
         self._data  = list(data_points)
         self._color = QColor(color)
@@ -337,7 +328,7 @@ class DonutChart(QWidget):
             painter.drawPie(rect, start, span)
             start += span
         hole = QRect(x + s//4, y + s//4, s//2, s//2)
-        painter.setBrush(QColor("#2a2855"))
+        painter.setBrush(QColor("#f8f8f8"))
         painter.drawEllipse(hole)
         painter.end()
 
@@ -370,13 +361,13 @@ class SHAPBarChart(QWidget):
         for i, feat in enumerate(self._features):
             y  = 5 + i * row_h
             cy = y + row_h / 2
-            painter.setPen(QColor("#9896c8"))
+            painter.setPen(QColor("#555555"))
             painter.setFont(f_label)
             painter.drawText(QRect(0, int(y), bar_area_start - 8, int(row_h)),
                              Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
                              feat["name"])
             bar_w = int(bar_area_w * abs(feat["shap"]) / max_shap)
-            color = QColor("#00c97d") if feat["direction"] == "positive" else QColor("#ff5577")
+            color = QColor("#111111") if feat["direction"] == "positive" else QColor("#aaaaaa")
             painter.setPen(Qt.PenStyle.NoPen)
             painter.setBrush(color)
             painter.drawRoundedRect(QRect(bar_area_start, int(cy - 6), bar_w, 12), 4, 4)
@@ -392,7 +383,7 @@ class SHAPBarChart(QWidget):
 #  System Usage Bar  (dynamic)
 # ─────────────────────────────────────────────────────────────
 class UsageBar(QWidget):
-    def __init__(self, label, value, color="#b46cff", parent=None):
+    def __init__(self, label, value, color="#aaaaaa", parent=None):
         super().__init__(parent)
         self._label  = label
         self._value  = float(value)
@@ -421,27 +412,26 @@ class UsageBar(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         w, h = self.width(), self.height()
-        painter.setPen(QColor("#9896c8"))
+        painter.setPen(QColor("#555555"))
         painter.setFont(QFont("Segoe UI", 9))
         painter.drawText(QRect(0, 0, 90, h),
                          Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
                          self._label)
         track_rect = QRect(95, h//2 - 5, w - 145, 10)
-        painter.setBrush(QColor("#2e2b5f"))
+        painter.setBrush(QColor("#e8e8e8"))
         painter.setPen(Qt.PenStyle.NoPen)
         painter.drawRoundedRect(track_rect, 5, 5)
         fill_w = int(track_rect.width() * self._value / 100)
         if fill_w > 0:
             grad = QLinearGradient(track_rect.left(), 0, track_rect.right(), 0)
-            grad.setColorAt(0, self._color)
-            c2 = QColor(self._color); c2.setAlpha(180)
-            grad.setColorAt(1, c2)
+            grad.setColorAt(0, QColor("#888888"))
+            grad.setColorAt(1, QColor("#111111"))
             painter.setBrush(grad)
             painter.drawRoundedRect(
                 QRect(track_rect.left(), track_rect.top(), fill_w, track_rect.height()),
                 5, 5
             )
-        painter.setPen(QColor("#ffffff"))
+        painter.setPen(QColor("#111111"))
         painter.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
         painter.drawText(QRect(w - 46, 0, 46, h),
                          Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight,

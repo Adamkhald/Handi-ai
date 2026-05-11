@@ -5,7 +5,7 @@ HandiAI — Settings Page
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel,
     QPushButton, QScrollArea, QFrame, QLineEdit, QCheckBox,
-    QComboBox, QSlider, QSizePolicy
+    QComboBox, QSlider, QSizePolicy, QMessageBox
 )
 from PySide6.QtCore import Qt
 
@@ -17,11 +17,11 @@ def _section(title, subtitle=""):
     w = QWidget(); w.setStyleSheet("background: transparent;")
     l = QVBoxLayout(w); l.setContentsMargins(0, 0, 0, 0); l.setSpacing(2)
     t = QLabel(title)
-    t.setStyleSheet("font-size: 15px; font-weight: 700; color: #ffffff; background: transparent;")
+    t.setStyleSheet("font-size: 15px; font-weight: 700; color: #000000; background: transparent;")
     l.addWidget(t)
     if subtitle:
         s = QLabel(subtitle)
-        s.setStyleSheet("font-size: 11px; color: #9896c8; background: transparent;")
+        s.setStyleSheet("font-size: 11px; color: #888888; background: transparent;")
         l.addWidget(s)
     return w
 
@@ -32,11 +32,11 @@ def _row_field(label, widget, description=""):
     row = QHBoxLayout(); row.setSpacing(12)
     lbl_col = QVBoxLayout(); lbl_col.setSpacing(1)
     lbl = QLabel(label)
-    lbl.setStyleSheet("font-size: 12px; font-weight: 600; color: #e0dff5; background: transparent;")
+    lbl.setStyleSheet("font-size: 12px; font-weight: 600; color: #222222; background: transparent;")
     lbl_col.addWidget(lbl)
     if description:
         desc = QLabel(description)
-        desc.setStyleSheet("font-size: 10px; color: #9896c8; background: transparent;")
+        desc.setStyleSheet("font-size: 10px; color: #888888; background: transparent;")
         lbl_col.addWidget(desc)
     row.addLayout(lbl_col)
     row.addStretch()
@@ -52,9 +52,9 @@ def _styled_input(value="", placeholder=""):
     inp.setFixedWidth(280)
     inp.setFixedHeight(34)
     inp.setStyleSheet(
-        "QLineEdit { background: #1d1b3a; border: 1px solid #3a3670; border-radius: 8px; "
-        "padding: 0 12px; color: #e0dff5; font-size: 12px; }"
-        "QLineEdit:focus { border: 1px solid #b46cff; }"
+        "QLineEdit { background: #f2f2f2; border: 1px solid #d8d8d8; border-radius: 8px; "
+        "padding: 0 12px; color: #222222; font-size: 12px; }"
+        "QLineEdit:focus { border: 1px solid #888888; }"
     )
     return inp
 
@@ -69,8 +69,8 @@ class ToggleSwitch(QWidget):
         self._cb.setChecked(checked)
         self._cb.setStyleSheet(
             "QCheckBox::indicator { width: 36px; height: 20px; border-radius: 10px; "
-            "background: #3a3670; border: none; }"
-            "QCheckBox::indicator:checked { background: #b46cff; }"
+            "background: #d8d8d8; border: none; }"
+            "QCheckBox::indicator:checked { background: #111111; }"
         )
         lay.addWidget(self._cb)
 
@@ -101,9 +101,9 @@ class SettingsPage(QWidget):
 
         # Header
         t = QLabel("Settings")
-        t.setStyleSheet("font-size: 22px; font-weight: 800; color: #ffffff; background: transparent;")
+        t.setStyleSheet("font-size: 22px; font-weight: 800; color: #000000; background: transparent;")
         s = QLabel("Configure your HandiAI platform preferences and integrations")
-        s.setStyleSheet("font-size: 11px; color: #9896c8; background: transparent;")
+        s.setStyleSheet("font-size: 11px; color: #888888; background: transparent;")
         lay.addWidget(t); lay.addWidget(s)
 
         # ── 2-column grid for settings cards ─────────────────
@@ -121,22 +121,23 @@ class SettingsPage(QWidget):
         al.addWidget(_section("API Integration", "Connect HandiAI to external services"))
 
         sep = QFrame(); sep.setFrameShape(QFrame.Shape.HLine)
-        sep.setStyleSheet("background: #2e2b5f; max-height: 1px;")
+        sep.setStyleSheet("background: #e0e0e0; max-height: 1px;")
         al.addWidget(sep)
 
-        al.addWidget(_row_field("API Key",
-            _styled_input(data.SETTINGS["api_key"]),
+        self._api_key_inp = _styled_input(data.SETTINGS["api_key"])
+        al.addWidget(_row_field("API Key", self._api_key_inp,
             "Your HandiAI API key — keep this secret"))
-        al.addWidget(_row_field("Base URL",
-            _styled_input(data.SETTINGS["base_url"])))
-        al.addWidget(_row_field("Webhook URL",
-            _styled_input(data.SETTINGS["webhook_url"]),
+        self._base_url_inp = _styled_input(data.SETTINGS["base_url"])
+        al.addWidget(_row_field("Base URL", self._base_url_inp))
+        self._webhook_inp = _styled_input(data.SETTINGS["webhook_url"])
+        al.addWidget(_row_field("Webhook URL", self._webhook_inp,
             "Slack / Teams webhook for alerts"))
 
         save_btn = QPushButton("Save API Settings")
         save_btn.setObjectName("btn_primary")
         save_btn.setFixedHeight(34)
         save_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        save_btn.clicked.connect(self._save_api_settings)
         al.addWidget(save_btn)
         grid.addWidget(api_card, 0, 0)
 
@@ -149,7 +150,7 @@ class SettingsPage(QWidget):
         nl.addWidget(_section("Notifications", "Control when and how you receive alerts"))
 
         sep2 = QFrame(); sep2.setFrameShape(QFrame.Shape.HLine)
-        sep2.setStyleSheet("background: #2e2b5f; max-height: 1px;")
+        sep2.setStyleSheet("background: #e0e0e0; max-height: 1px;")
         nl.addWidget(sep2)
 
         nl.addWidget(_row_field("Alert Email",
@@ -183,7 +184,7 @@ class SettingsPage(QWidget):
         dl.addWidget(_section("Deployment Configuration", "Model serving and auto-management"))
 
         sep3 = QFrame(); sep3.setFrameShape(QFrame.Shape.HLine)
-        sep3.setStyleSheet("background: #2e2b5f; max-height: 1px;")
+        sep3.setStyleSheet("background: #e0e0e0; max-height: 1px;")
         dl.addWidget(sep3)
 
         # Drift threshold slider
@@ -191,11 +192,11 @@ class SettingsPage(QWidget):
         tr_lay = QVBoxLayout(threshold_row); tr_lay.setContentsMargins(0, 0, 0, 0); tr_lay.setSpacing(6)
         top_row = QHBoxLayout()
         tl = QLabel("Drift Threshold")
-        tl.setStyleSheet("font-size: 12px; font-weight: 600; color: #e0dff5; background: transparent;")
+        tl.setStyleSheet("font-size: 12px; font-weight: 600; color: #222222; background: transparent;")
         top_row.addWidget(tl)
         top_row.addStretch()
         self._thresh_val = QLabel(f"{data.SETTINGS['drift_threshold']:.2f}")
-        self._thresh_val.setStyleSheet("font-size: 12px; font-weight: 700; color: #b46cff; background: transparent;")
+        self._thresh_val.setStyleSheet("font-size: 12px; font-weight: 700; color: #000000; background: transparent;")
         top_row.addWidget(self._thresh_val)
         tr_lay.addLayout(top_row)
         slider = QSlider(Qt.Orientation.Horizontal)
@@ -224,15 +225,15 @@ class SettingsPage(QWidget):
         ul.addWidget(_section("User Management", "Team members and access control"))
 
         sep4 = QFrame(); sep4.setFrameShape(QFrame.Shape.HLine)
-        sep4.setStyleSheet("background: #2e2b5f; max-height: 1px;")
+        sep4.setStyleSheet("background: #e0e0e0; max-height: 1px;")
         ul.addWidget(sep4)
 
         users = [
-            ("Adham K.",    "ML Engineer",       "#b46cff", "Admin"),
-            ("Sarah M.",    "Data Scientist",    "#00e0b8", "Editor"),
-            ("James L.",    "MLOps Engineer",    "#ffd400", "Editor"),
-            ("Priya R.",    "Research Lead",     "#4d9fff", "Viewer"),
-            ("Tom H.",      "Product Manager",   "#ff8c42", "Viewer"),
+            ("Adham K.",    "ML Engineer",       "#222222", "Admin"),
+            ("Sarah M.",    "Data Scientist",    "#cccccc", "Editor"),
+            ("James L.",    "MLOps Engineer",    "#888888", "Editor"),
+            ("Priya R.",    "Research Lead",     "#aaaaaa", "Viewer"),
+            ("Tom H.",      "Product Manager",   "#888888", "Viewer"),
         ]
         for name, role, color, access in users:
             row = QHBoxLayout(); row.setSpacing(12)
@@ -249,14 +250,14 @@ class SettingsPage(QWidget):
 
             col_lay = QVBoxLayout(); col_lay.setSpacing(0)
             n_lbl = QLabel(name)
-            n_lbl.setStyleSheet("font-size: 12px; font-weight: 600; color: #ffffff; background: transparent;")
+            n_lbl.setStyleSheet("font-size: 12px; font-weight: 600; color: #000000; background: transparent;")
             r_lbl = QLabel(role)
-            r_lbl.setStyleSheet("font-size: 10px; color: #9896c8; background: transparent;")
+            r_lbl.setStyleSheet("font-size: 10px; color: #888888; background: transparent;")
             col_lay.addWidget(n_lbl); col_lay.addWidget(r_lbl)
             row.addLayout(col_lay); row.addStretch()
 
             ac_badge = QLabel(access)
-            ac_color = "#b46cff" if access == "Admin" else ("#00e0b8" if access == "Editor" else "#9896c8")
+            ac_color = "#111111" if access == "Admin" else ("#444444" if access == "Editor" else "#888888")
             ac_badge.setStyleSheet(
                 f"background: {ac_color}22; border: 1px solid {ac_color}44; border-radius: 8px; "
                 f"color: {ac_color}; font-size: 10px; font-weight: 700; padding: 2px 8px;"
@@ -269,6 +270,7 @@ class SettingsPage(QWidget):
         add_user_btn.setObjectName("btn_secondary")
         add_user_btn.setFixedHeight(32)
         add_user_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        add_user_btn.clicked.connect(self._invite_member)
         ul.addWidget(add_user_btn)
 
         grid.addWidget(user_card, 1, 1)
@@ -284,17 +286,17 @@ class SettingsPage(QWidget):
 
         thc = QVBoxLayout(); thc.setSpacing(2)
         tht = QLabel("Appearance")
-        tht.setStyleSheet("font-size: 14px; font-weight: 700; color: #ffffff; background: transparent;")
+        tht.setStyleSheet("font-size: 14px; font-weight: 700; color: #000000; background: transparent;")
         ths = QLabel("Choose your dashboard theme and colour scheme")
-        ths.setStyleSheet("font-size: 11px; color: #9896c8; background: transparent;")
+        ths.setStyleSheet("font-size: 11px; color: #888888; background: transparent;")
         thc.addWidget(tht); thc.addWidget(ths)
         thl.addLayout(thc)
         thl.addStretch()
 
         for theme, color, active in [
-            ("Dark Purple", "#b46cff", True),
-            ("Dark Cyan",   "#00e0b8", False),
-            ("Dark Amber",  "#ffd400", False),
+            ("Light Mono",  "#111111", True),
+            ("Light Gray",  "#555555", False),
+            ("Light Warm",  "#888888", False),
         ]:
             btn = QPushButton(theme)
             btn.setFixedHeight(34)
@@ -306,11 +308,21 @@ class SettingsPage(QWidget):
                 )
             else:
                 btn.setStyleSheet(
-                    f"QPushButton {{ background: rgba(255,255,255,0.05); border: 1px solid #3a3670; "
-                    f"border-radius: 10px; color: #9896c8; font-size: 12px; padding: 0 16px; }}"
+                    f"QPushButton {{ background: #f5f5f5; border: 1px solid #d8d8d8; "
+                    f"border-radius: 10px; color: #888888; font-size: 12px; padding: 0 16px; }}"
                     f"QPushButton:hover {{ border: 1px solid {color}66; color: {color}; }}"
                 )
             thl.addWidget(btn)
 
         lay.addWidget(theme_card)
         lay.addSpacing(10)
+
+    def _save_api_settings(self):
+        data.SETTINGS["api_key"]      = self._api_key_inp.text().strip()
+        data.SETTINGS["base_url"]     = self._base_url_inp.text().strip()
+        data.SETTINGS["webhook_url"]  = self._webhook_inp.text().strip()
+        QMessageBox.information(self, "Settings Saved", "API settings have been saved.")
+
+    def _invite_member(self):
+        QMessageBox.information(self, "Invite Team Member",
+            "An invitation email would be sent here.\n(Email integration not yet connected.)")

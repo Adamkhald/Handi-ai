@@ -5,7 +5,7 @@ HandiAI — Production Monitoring Page
 import random
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QScrollArea, QFrame, QTextEdit, QSizePolicy
+    QScrollArea, QFrame, QTextEdit, QSizePolicy, QMessageBox
 )
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QFont, QColor
@@ -46,17 +46,17 @@ class MonitoringPage(QWidget):
         ph = QHBoxLayout()
         col = QVBoxLayout(); col.setSpacing(2)
         t = QLabel("Production Monitoring")
-        t.setStyleSheet("font-size: 22px; font-weight: 800; color: #ffffff; background: transparent;")
+        t.setStyleSheet("font-size: 22px; font-weight: 800; color: #000000; background: transparent;")
         s = QLabel("Real-time model performance, drift alerts, and system health")
-        s.setStyleSheet("font-size: 11px; color: #9896c8; background: transparent;")
+        s.setStyleSheet("font-size: 11px; color: #888888; background: transparent;")
         col.addWidget(t); col.addWidget(s)
         ph.addLayout(col); ph.addStretch()
 
         # Live badge
         live = QLabel("● LIVE")
         live.setStyleSheet(
-            "background: rgba(0,201,125,0.12); border: 1px solid #00c97d44; border-radius: 12px; "
-            "color: #00c97d; font-size: 12px; font-weight: 700; padding: 4px 14px;"
+            "background: #f0f0f0; border: 1px solid #e0e0e0; border-radius: 12px; "
+            "color: #666666; font-size: 12px; font-weight: 700; padding: 4px 14px;"
         )
         ph.addWidget(live)
         lay.addLayout(ph)
@@ -65,11 +65,11 @@ class MonitoringPage(QWidget):
         kpi_row = QHBoxLayout()
         kpi_row.setSpacing(14)
         kpis = [
-            ("Active Endpoints", "5",      "#00e0b8", "◉"),
-            ("Avg Latency",      "34ms",   "#b46cff", "⏱"),
-            ("Error Rate",       "0.02%",  "#00c97d", "✓"),
-            ("Drift Alerts",     "1",      "#ffd400", "⚑"),
-            ("Req/s",            "654",    "#4d9fff", "⚡"),
+            ("Active Endpoints", "5",      "#333333", "◉"),
+            ("Avg Latency",      "34ms",   "#111111", "⏱"),
+            ("Error Rate",       "0.02%",  "#555555", "✓"),
+            ("Drift Alerts",     "1",      "#777777", "⚑"),
+            ("Req/s",            "654",    "#555555", "⚡"),
         ]
         self._kpi_labels = {}
         for title, val, color, icon in kpis:
@@ -89,7 +89,7 @@ class MonitoringPage(QWidget):
             cl.addWidget(vl)
             self._kpi_labels[title] = vl
             nl = QLabel(title)
-            nl.setStyleSheet("font-size: 10px; color: #9896c8; background: transparent;")
+            nl.setStyleSheet("font-size: 10px; color: #888888; background: transparent;")
             cl.addWidget(nl)
             kpi_row.addWidget(card)
         lay.addLayout(kpi_row)
@@ -105,9 +105,9 @@ class MonitoringPage(QWidget):
         ll.setContentsMargins(16, 14, 16, 14)
         ll.setSpacing(8)
         lt = QLabel("Response Latency")
-        lt.setStyleSheet("font-size: 13px; font-weight: 700; color: #ffffff; background: transparent;")
+        lt.setStyleSheet("font-size: 13px; font-weight: 700; color: #000000; background: transparent;")
         ls = QLabel("P50 / P95 / P99 over 30 samples")
-        ls.setStyleSheet("font-size: 10px; color: #9896c8; background: transparent;")
+        ls.setStyleSheet("font-size: 10px; color: #888888; background: transparent;")
         ll.addWidget(lt); ll.addWidget(ls)
         self._latency_chart = LatencyChart()
         ll.addWidget(self._latency_chart)
@@ -120,14 +120,14 @@ class MonitoringPage(QWidget):
         sl.setContentsMargins(18, 16, 18, 16)
         sl.setSpacing(10)
         st = QLabel("System Resources")
-        st.setStyleSheet("font-size: 13px; font-weight: 700; color: #ffffff; background: transparent;")
+        st.setStyleSheet("font-size: 13px; font-weight: 700; color: #000000; background: transparent;")
         sl.addWidget(st)
 
         usages = [
-            ("CPU",     data.SYSTEM_USAGE["cpu"],    "#00e0b8"),
-            ("GPU",     data.SYSTEM_USAGE["gpu"],    "#b46cff"),
-            ("Memory",  data.SYSTEM_USAGE["memory"], "#ffd400"),
-            ("Disk I/O",data.SYSTEM_USAGE["disk_io"],"#ff8c42"),
+            ("CPU",     data.SYSTEM_USAGE["cpu"],    "#333333"),
+            ("GPU",     data.SYSTEM_USAGE["gpu"],    "#111111"),
+            ("Memory",  data.SYSTEM_USAGE["memory"], "#555555"),
+            ("Disk I/O",data.SYSTEM_USAGE["disk_io"],"#777777"),
         ]
         self._usage_bars = {}
         for label, val, color in usages:
@@ -148,12 +148,14 @@ class MonitoringPage(QWidget):
 
         eh = QHBoxLayout()
         et = QLabel("Active Endpoints")
-        et.setStyleSheet("font-size: 13px; font-weight: 700; color: #ffffff; background: transparent;")
+        et.setStyleSheet("font-size: 13px; font-weight: 700; color: #000000; background: transparent;")
         eh.addWidget(et); eh.addStretch()
         eb = QPushButton("Manage Endpoints")
         eb.setObjectName("btn_secondary")
         eb.setFixedHeight(28)
         eb.setCursor(Qt.CursorShape.PointingHandCursor)
+        eb.clicked.connect(lambda: QMessageBox.information(
+            self, "Endpoints", "Upload a model to register and manage endpoints."))
         eh.addWidget(eb)
         el.addLayout(eh)
 
@@ -162,20 +164,20 @@ class MonitoringPage(QWidget):
         for col_name in ["Endpoint", "Req/s", "P99 ms", "Status", "Actions"]:
             lbl = QLabel(col_name.upper())
             lbl.setStyleSheet(
-                "font-size: 10px; font-weight: 700; color: #5a5888; "
+                "font-size: 10px; font-weight: 700; color: #444444; "
                 "letter-spacing: 0.8px; background: transparent;"
             )
             hdr.addWidget(lbl, 2 if col_name == "Endpoint" else 1)
         el.addLayout(hdr)
 
         sep = QFrame(); sep.setFrameShape(QFrame.Shape.HLine)
-        sep.setStyleSheet("background: #2e2b5f; max-height: 1px;")
+        sep.setStyleSheet("background: #e0e0e0; max-height: 1px;")
         el.addWidget(sep)
 
         ep_empty = QLabel("No active endpoints — upload a model to register one.")
         ep_empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
         ep_empty.setStyleSheet(
-            "font-size: 12px; color: #5a5888; padding: 16px 0; background: transparent;"
+            "font-size: 12px; color: #444444; padding: 16px 0; background: transparent;"
         )
         el.addWidget(ep_empty)
 
@@ -194,7 +196,7 @@ class MonitoringPage(QWidget):
 
         wt = QLabel("WHY THIS PREDICTION?")
         wt.setStyleSheet(
-            "font-size: 11px; font-weight: 800; color: #b46cff; "
+            "font-size: 11px; font-weight: 800; color: #000000; "
             "letter-spacing: 1.5px; background: transparent;"
         )
         wl.addWidget(wt)
@@ -206,7 +208,7 @@ class MonitoringPage(QWidget):
         self._why_placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._why_placeholder.setWordWrap(True)
         self._why_placeholder.setStyleSheet(
-            "font-size: 12px; color: #5a5888; padding: 12px 4px; background: transparent;"
+            "font-size: 12px; color: #444444; padding: 12px 4px; background: transparent;"
         )
         wl.addWidget(self._why_placeholder)
 
@@ -222,7 +224,7 @@ class MonitoringPage(QWidget):
 
         log_h = QHBoxLayout()
         log_t = QLabel("Live Prediction Feed")
-        log_t.setStyleSheet("font-size: 13px; font-weight: 700; color: #ffffff; background: transparent;")
+        log_t.setStyleSheet("font-size: 13px; font-weight: 700; color: #000000; background: transparent;")
         log_h.addWidget(log_t); log_h.addStretch()
         clr = QPushButton("Clear")
         clr.setObjectName("btn_secondary")
@@ -234,7 +236,7 @@ class MonitoringPage(QWidget):
         self._log_view = QTextEdit()
         self._log_view.setReadOnly(True)
         self._log_view.setStyleSheet(
-            "QTextEdit { background: #1a1836; border: 1px solid #3a3670; border-radius: 10px; "
+            "QTextEdit { background: #f2f2f2; border: 1px solid #d8d8d8; border-radius: 10px; "
             "color: #c8c7e8; font-size: 11px; font-family: 'Consolas', monospace; padding: 10px; }"
         )
         self._log_view.setMinimumHeight(220)
@@ -252,15 +254,15 @@ class MonitoringPage(QWidget):
 
     def _append_log(self, entry):
         pred = entry["predicted"]
-        color = "#ff5577" if pred == "Fraud" else ("#ffd400" if pred == "Anomaly" else "#00c97d")
+        color = "#111111" if pred == "Fraud" else ("#555555" if pred == "Anomaly" else "#888888")
         drift_flag = " ⚑DRIFT" if entry.get("drift_flag") else ""
         line = (
-            f'<span style="color:#5a5888">[{entry["timestamp"]}]</span>  '
-            f'<span style="color:#9896c8">{entry["model"][:20]}</span>  '
+            f'<span style="color:#444444">[{entry["timestamp"]}]</span>  '
+            f'<span style="color:#888888">{entry["model"][:20]}</span>  '
             f'<span style="color:{color};font-weight:bold">{pred}</span>  '
-            f'<span style="color:#9896c8">conf={entry["confidence"]:.1f}%  '
+            f'<span style="color:#888888">conf={entry["confidence"]:.1f}%  '
             f'lat={entry["latency_ms"]:.0f}ms</span>'
-            f'<span style="color:#ffd400">{drift_flag}</span>'
+            f'<span style="color:#888888">{drift_flag}</span>'
         )
         self._log_view.append(line)
         self._log_view.ensureCursorVisible()
@@ -287,24 +289,24 @@ class MonitoringPage(QWidget):
         ]:
             r = QHBoxLayout()
             k = QLabel(key)
-            k.setStyleSheet("font-size: 11px; color: #9896c8; background: transparent;")
-            val_color = "#ff5577" if key == "Predicted" and entry["predicted"] == "Fraud" else "#ffffff"
+            k.setStyleSheet("font-size: 11px; color: #888888; background: transparent;")
+            val_color = "#111111" if key == "Predicted" and entry["predicted"] == "Fraud" else "#333333"
             v = QLabel(str(val))
             v.setStyleSheet(f"font-size: 11px; font-weight: 600; color: {val_color}; background: transparent;")
             r.addWidget(k); r.addStretch(); r.addWidget(v)
             self._why_lay.addLayout(r)
 
         feat_t = QLabel("Top Influential Features")
-        feat_t.setStyleSheet("font-size: 11px; font-weight: 700; color: #ffffff; background: transparent;")
+        feat_t.setStyleSheet("font-size: 11px; font-weight: 700; color: #000000; background: transparent;")
         self._why_lay.addWidget(feat_t)
 
         for i, feat in enumerate(entry["top_features"]):
-            colors = ["#00c97d", "#ff5577", "#ffd400"]
+            colors = ["#aaaaaa", "#555555", "#888888"]
             r = QHBoxLayout()
             dot = QLabel(f"{i+1}.")
             dot.setStyleSheet(f"font-size: 11px; color: {colors[i]}; background: transparent;")
             lbl = QLabel(feat)
-            lbl.setStyleSheet("font-size: 11px; color: #e0dff5; background: transparent;")
+            lbl.setStyleSheet("font-size: 11px; color: #222222; background: transparent;")
             r.addWidget(dot); r.addWidget(lbl); r.addStretch()
             self._why_lay.addLayout(r)
 

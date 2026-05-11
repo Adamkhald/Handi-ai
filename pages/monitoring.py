@@ -268,16 +268,20 @@ class MonitoringPage(QWidget):
         self._log_view.ensureCursorVisible()
 
     def _update_why_prediction(self, entry):
-        # Clear existing non-title widgets
-        while self._why_lay.count() > 1: # keeping the title
+        # Clear existing non-title widgets (index 0 = title label, keep it)
+        while self._why_lay.count() > 1:
             item = self._why_lay.takeAt(1)
             if item.widget():
-                item.widget().deleteLater()
+                w = item.widget()
+                # Null out our tracked reference BEFORE deleting
+                if w is self._why_placeholder:
+                    self._why_placeholder = None
+                w.deleteLater()
             elif item.layout():
-                # Delete items inside the layout
                 while item.layout().count():
                     child = item.layout().takeAt(0)
-                    if child.widget(): child.widget().deleteLater()
+                    if child.widget():
+                        child.widget().deleteLater()
                 item.layout().deleteLater()
                 
         for key, val in [
@@ -333,6 +337,10 @@ class MonitoringPage(QWidget):
 
     def _on_log(self, entry):
         self._append_log(entry)
-        if hasattr(self, "_why_placeholder") and self._why_placeholder.isVisible():
-            self._why_placeholder.hide()
+        # Guard: placeholder may already be None (deleted) or gone
+        if self._why_placeholder is not None:
+            try:
+                self._why_placeholder.hide()
+            except RuntimeError:
+                self._why_placeholder = None
         self._update_why_prediction(entry)

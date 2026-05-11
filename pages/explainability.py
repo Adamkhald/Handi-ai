@@ -140,7 +140,7 @@ class ExplainabilityPage(QWidget):
 
     def _connect_engine(self):
         self.engine.shap_updated.connect(self._on_shap)
-        self._on_shap(self.engine.snapshot_shap())
+        # Don't pre-fill — wait for real data from load_real_data()
 
     def _re_explain(self):
         if self.engine:

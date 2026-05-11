@@ -90,11 +90,11 @@ class HandiAIMainWindow(QMainWindow):
 
         self._pages = [
             DashboardPage(self.engine, navigate_fn=self._switch_page),  # 0
-            UploadPage(self.engine),          # 1
-            ModelsPage(),                     # 2
-            ExplainabilityPage(self.engine),  # 3
-            MonitoringPage(self.engine),      # 4
-            ProductionLogsPage(self.engine),  # 5
+            UploadPage(self.engine),                                     # 1
+            ModelsPage(self.engine, navigate_fn=self._switch_page),      # 2
+            ExplainabilityPage(self.engine),                             # 3
+            MonitoringPage(self.engine),                                 # 4
+            ProductionLogsPage(self.engine),                             # 5
         ]
         for page in self._pages:
             self._stack.addWidget(page)

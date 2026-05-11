@@ -24,6 +24,7 @@ from ui.topbar  import TopBar
 
 # ── Pages ────────────────────────────────────────────────────
 from pages.dashboard     import DashboardPage
+from pages.upload        import UploadPage
 from pages.models        import ModelsPage
 from pages.datasets      import DatasetsPage
 from pages.explainability import ExplainabilityPage
@@ -93,24 +94,22 @@ class HandiAIMainWindow(QMainWindow):
 
         self._pages = [
             DashboardPage(self.engine),       # 0
-            ModelsPage(),                     # 1 (No live data needed yet)
-            DatasetsPage(),                   # 2
-            ExplainabilityPage(self.engine),  # 3
-            MonitoringPage(self.engine),      # 4
-            DriftDetectionPage(self.engine),  # 5
-            MetricsPage(),                    # 6
-            ProductionLogsPage(self.engine),  # 7
-            ReportsPage(),                    # 8
-            SettingsPage(),                   # 9
+            UploadPage(self.engine),          # 1  — upload & analyze
+            ModelsPage(),                     # 2
+            DatasetsPage(),                   # 3
+            ExplainabilityPage(self.engine),  # 4
+            MonitoringPage(self.engine),      # 5
+            DriftDetectionPage(self.engine),  # 6
+            MetricsPage(self.engine),         # 7
+            ProductionLogsPage(self.engine),  # 8
+            ReportsPage(),                    # 9
+            SettingsPage(),                   # 10
         ]
         for page in self._pages:
             self._stack.addWidget(page)
 
         right_lay.addWidget(self._stack, 1)
         root_lay.addWidget(right, 1)
-
-        # Start the engine
-        self.engine.start()
 
     def _switch_page(self, index: int):
         self._stack.setCurrentIndex(index)

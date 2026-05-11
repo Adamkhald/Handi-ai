@@ -182,53 +182,6 @@ class ModelsPage(QWidget):
         uc_lay.addLayout(fmt_row)
         lay.addWidget(upload_card)
 
-        # ── Processing Status ──────────────────────────────────
-        status_card = Card()
-        add_shadow(status_card)
-        sc_lay = QVBoxLayout(status_card)
-        sc_lay.setContentsMargins(20, 18, 20, 18)
-        sc_lay.setSpacing(12)
-
-        sc_title = QLabel("Processing Status")
-        sc_title.setStyleSheet("font-size: 14px; font-weight: 700; color: #ffffff; background: transparent;")
-        sc_lay.addWidget(sc_title)
-
-        steps = [
-            ("Model Parsing",        92, "#00e0b8", "✓ Completed"),
-            ("Schema Validation",    100, "#00c97d", "✓ Completed"),
-            ("Feature Extraction",   78, "#b46cff", "⟳ In Progress"),
-            ("Test Set Evaluation",  0,  "#9896c8", "○ Pending"),
-            ("Explainability Setup", 0,  "#9896c8", "○ Pending"),
-        ]
-        for step_name, progress, color, status in steps:
-            row = QHBoxLayout()
-            row.setSpacing(12)
-
-            nm = QLabel(step_name)
-            nm.setFixedWidth(180)
-            nm.setStyleSheet("font-size: 12px; color: #e0dff5; background: transparent;")
-            row.addWidget(nm)
-
-            bar = QProgressBar()
-            bar.setValue(progress)
-            bar.setFixedHeight(8)
-            bar.setTextVisible(False)
-            bar.setStyleSheet(
-                f"QProgressBar {{ background: #2e2b5f; border-radius: 4px; border: none; }}"
-                f"QProgressBar::chunk {{ background: {color}; border-radius: 4px; }}"
-            )
-            row.addWidget(bar, 1)
-
-            st_lbl = QLabel(status)
-            st_lbl.setFixedWidth(120)
-            st_lbl.setAlignment(Qt.AlignmentFlag.AlignRight)
-            st_lbl.setStyleSheet(
-                f"font-size: 11px; color: {color}; font-weight: 600; background: transparent;"
-            )
-            row.addWidget(st_lbl)
-            sc_lay.addLayout(row)
-
-        lay.addWidget(status_card)
 
         # ── Loaded Models Table ───────────────────────────────
         models_card = Card()
@@ -249,56 +202,60 @@ class ModelsPage(QWidget):
         mh.addWidget(btn_new)
         ml_lay.addLayout(mh)
 
-        STATUS_COLORS = {
-            "Production": "#00c97d", "Staging": "#ffd400",
-            "Testing": "#4d9fff", "Retired": "#ff5577",
-        }
-        for model in data.MODELS:
-            row = QHBoxLayout()
-            row.setSpacing(12)
-
-            sc = STATUS_COLORS.get(model["status"], "#9896c8")
-            dot = QLabel("●")
-            dot.setStyleSheet(f"color: {sc}; font-size: 10px; background: transparent;")
-            row.addWidget(dot)
-
-            name = QLabel(model["name"])
-            name.setStyleSheet("font-size: 12px; font-weight: 600; color: #ffffff; background: transparent;")
-            row.addWidget(name, 2)
-
-            t = QLabel(model["type"])
-            t.setStyleSheet("font-size: 11px; color: #9896c8; background: transparent;")
-            row.addWidget(t, 1)
-
-            acc = QLabel(f"{model['accuracy']:.1f}%")
-            acc.setStyleSheet("font-size: 11px; color: #00e0b8; font-weight: 600; background: transparent;")
-            row.addWidget(acc)
-
-            st_badge = QLabel(model["status"])
-            st_badge.setStyleSheet(
-                f"background: {sc}22; border: 1px solid {sc}44; border-radius: 8px; "
-                f"color: {sc}; font-size: 10px; font-weight: 700; padding: 2px 8px;"
+        if not data.MODELS:
+            empty = QLabel("No models loaded yet — use Upload & Analyze to import your first model.")
+            empty.setStyleSheet(
+                "font-size: 12px; color: #5a5888; padding: 20px 0; background: transparent;"
             )
-            row.addWidget(st_badge)
+            empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            ml_lay.addWidget(empty)
+        else:
+            STATUS_COLORS = {
+                "Production": "#00c97d", "Staging": "#ffd400",
+                "Testing": "#4d9fff",   "Retired": "#ff5577",
+            }
+            for model in data.MODELS:
+                row = QHBoxLayout(); row.setSpacing(12)
 
-            for icon, tip in [("🔍", "Explain"), ("📊", "Metrics"), ("🗑", "Remove")]:
-                b = QPushButton(icon)
-                b.setFixedSize(30, 30)
-                b.setToolTip(tip)
-                b.setCursor(Qt.CursorShape.PointingHandCursor)
-                b.setStyleSheet(
-                    "QPushButton { background: rgba(255,255,255,0.05); border: 1px solid #3a3670; "
-                    "border-radius: 8px; font-size: 14px; }"
-                    "QPushButton:hover { background: rgba(180,108,255,0.2); border: 1px solid #b46cff55; }"
+                sc  = STATUS_COLORS.get(model["status"], "#9896c8")
+                dot = QLabel("●")
+                dot.setStyleSheet(f"color: {sc}; font-size: 10px; background: transparent;")
+                row.addWidget(dot)
+
+                name = QLabel(model["name"])
+                name.setStyleSheet("font-size: 12px; font-weight: 600; color: #ffffff; background: transparent;")
+                row.addWidget(name, 2)
+
+                t = QLabel(model["type"])
+                t.setStyleSheet("font-size: 11px; color: #9896c8; background: transparent;")
+                row.addWidget(t, 1)
+
+                acc = QLabel(f"{model['accuracy']:.1f}%")
+                acc.setStyleSheet("font-size: 11px; color: #00e0b8; font-weight: 600; background: transparent;")
+                row.addWidget(acc)
+
+                st_badge = QLabel(model["status"])
+                st_badge.setStyleSheet(
+                    f"background: {sc}22; border: 1px solid {sc}44; border-radius: 8px; "
+                    f"color: {sc}; font-size: 10px; font-weight: 700; padding: 2px 8px;"
                 )
-                row.addWidget(b)
+                row.addWidget(st_badge)
 
-            ml_lay.addLayout(row)
+                for icon, tip in [("🔍", "Explain"), ("📊", "Metrics"), ("🗑", "Remove")]:
+                    b = QPushButton(icon)
+                    b.setFixedSize(30, 30); b.setToolTip(tip)
+                    b.setCursor(Qt.CursorShape.PointingHandCursor)
+                    b.setStyleSheet(
+                        "QPushButton { background: rgba(255,255,255,0.05); border: 1px solid #3a3670; "
+                        "border-radius: 8px; font-size: 14px; }"
+                        "QPushButton:hover { background: rgba(180,108,255,0.2); border: 1px solid #b46cff55; }"
+                    )
+                    row.addWidget(b)
 
-            sep = QFrame()
-            sep.setFrameShape(QFrame.Shape.HLine)
-            sep.setStyleSheet("background: #2e2b5f; max-height: 1px;")
-            ml_lay.addWidget(sep)
+                ml_lay.addLayout(row)
+                sep = QFrame(); sep.setFrameShape(QFrame.Shape.HLine)
+                sep.setStyleSheet("background: #2e2b5f; max-height: 1px;")
+                ml_lay.addWidget(sep)
 
         lay.addWidget(models_card)
         lay.addSpacing(10)

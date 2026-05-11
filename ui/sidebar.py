@@ -12,16 +12,17 @@ from widgets.components import Card, make_label, add_shadow
 
 
 NAV_ITEMS = [
-    ("⊞", "Dashboard",       0),
-    ("⬡", "Models",          1),
-    ("⬢", "Datasets",        2),
-    ("◎", "Explainability",  3),
-    ("◈", "Monitoring",      4),
-    ("⚑", "Drift Detection", 5),
-    ("▣", "Metrics",         6),
-    ("≡", "Production Logs", 7),
-    ("⊞", "Reports",         8),
-    ("⚙", "Settings",        9),
+    ("⊞", "Dashboard",        0),
+    ("⬆", "Upload & Analyze", 1),
+    ("⬡", "Models",           2),
+    ("⬢", "Datasets",         3),
+    ("◎", "Explainability",   4),
+    ("◈", "Monitoring",       5),
+    ("⚑", "Drift Detection",  6),
+    ("▣", "Metrics",          7),
+    ("≡", "Production Logs",  8),
+    ("⊞", "Reports",          9),
+    ("⚙", "Settings",        10),
 ]
 
 

@@ -135,10 +135,13 @@ class ProductionLogsPage(QWidget):
         rows_scroll.setWidget(rows_widget)
         ll.addWidget(rows_scroll)
 
-        # Populate initial rows
-        for entry in data.PRODUCTION_LOGS[:25]:
-            self._add_log_row(entry)
-
+        # Placeholder shown until real data arrives
+        self._empty_lbl = QLabel("No predictions yet — upload a model and dataset to see real logs here.")
+        self._empty_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._empty_lbl.setStyleSheet(
+            "font-size: 12px; color: #5a5888; padding: 32px 0; background: transparent;"
+        )
+        self._rows_lay.addWidget(self._empty_lbl)
         self._rows_lay.addStretch()
         lay.addWidget(log_card)
         lay.addSpacing(10)
@@ -205,6 +208,8 @@ class ProductionLogsPage(QWidget):
             self._rows_lay.addWidget(sep)
             
     def _on_log(self, entry):
+        if hasattr(self, "_empty_lbl") and self._empty_lbl.isVisible():
+            self._empty_lbl.hide()
         self._add_log_row(entry, insert_at_top=True)
         # trim if too many
         if self._rows_lay.count() > 100:

@@ -172,47 +172,12 @@ class MonitoringPage(QWidget):
         sep.setStyleSheet("background: #2e2b5f; max-height: 1px;")
         el.addWidget(sep)
 
-        for ep in data.ACTIVE_ENDPOINTS:
-            row = QHBoxLayout()
-
-            nm = QLabel(ep["endpoint"])
-            nm.setStyleSheet("font-size: 12px; font-weight: 600; color: #ffffff; background: transparent;")
-            row.addWidget(nm, 2)
-
-            rps = QLabel(str(ep["rps"]))
-            rps.setStyleSheet("font-size: 11px; color: #00e0b8; font-weight: 600; background: transparent;")
-            row.addWidget(rps, 1)
-
-            lat = QLabel(f"{ep['p99_ms']} ms")
-            lat_color = "#00c97d" if ep["p99_ms"] < 60 else ("#ffd400" if ep["p99_ms"] < 120 else "#ff5577")
-            lat.setStyleSheet(f"font-size: 11px; color: {lat_color}; font-weight: 600; background: transparent;")
-            row.addWidget(lat, 1)
-
-            st_color = "#00c97d" if ep["status"] == "Healthy" else "#ffd400"
-            st = QLabel(ep["status"])
-            st.setStyleSheet(
-                f"background: {st_color}22; border: 1px solid {st_color}44; border-radius: 8px; "
-                f"color: {st_color}; font-size: 10px; font-weight: 700; padding: 2px 8px;"
-            )
-            row.addWidget(st, 1)
-
-            for icon in ["⏸", "📊", "🔍"]:
-                b = QPushButton(icon)
-                b.setFixedSize(28, 28)
-                b.setCursor(Qt.CursorShape.PointingHandCursor)
-                b.setStyleSheet(
-                    "QPushButton { background: rgba(255,255,255,0.05); border: 1px solid #3a3670; "
-                    "border-radius: 7px; font-size: 13px; }"
-                    "QPushButton:hover { background: rgba(180,108,255,0.2); border: 1px solid #b46cff55; }"
-                )
-                row.addWidget(b)
-
-            el.addLayout(row)
-
-            if ep != data.ACTIVE_ENDPOINTS[-1]:
-                sep2 = QFrame(); sep2.setFrameShape(QFrame.Shape.HLine)
-                sep2.setStyleSheet("background: #2a2855; max-height: 1px;")
-                el.addWidget(sep2)
+        ep_empty = QLabel("No active endpoints — upload a model to register one.")
+        ep_empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        ep_empty.setStyleSheet(
+            "font-size: 12px; color: #5a5888; padding: 16px 0; background: transparent;"
+        )
+        el.addWidget(ep_empty)
 
         lay.addWidget(ep_card)
 
@@ -234,9 +199,16 @@ class MonitoringPage(QWidget):
         )
         wl.addWidget(wt)
 
-        # Instead of statically populating "WHY THIS PREDICTION", we'll do it dynamically
         self._why_lay = wl
-        self._update_why_prediction(data.PRODUCTION_LOGS[0])
+        self._why_placeholder = QLabel(
+            "No predictions yet.\nUpload a model and dataset\nto see real inference details here."
+        )
+        self._why_placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._why_placeholder.setWordWrap(True)
+        self._why_placeholder.setStyleSheet(
+            "font-size: 12px; color: #5a5888; padding: 12px 4px; background: transparent;"
+        )
+        wl.addWidget(self._why_placeholder)
 
         wl.addStretch()
         row4.addWidget(why_card, 1)
@@ -270,9 +242,9 @@ class MonitoringPage(QWidget):
 
         clr.clicked.connect(self._log_view.clear)
 
-        # Seed initial logs
-        for entry in data.PRODUCTION_LOGS[:10]:
-            self._append_log(entry)
+        self._log_view.setPlaceholderText(
+            "No predictions yet — upload a model and dataset to see live inference logs here."
+        )
 
         row4.addWidget(log_card, 2)
         lay.addLayout(row4)
@@ -341,11 +313,6 @@ class MonitoringPage(QWidget):
         self.engine.latency_updated.connect(self._latency_chart.update_data)
         self.engine.system_updated.connect(self._on_system)
         self.engine.log_entry_added.connect(self._on_log)
-        
-        # Pre-fill data
-        self._on_kpi(self.engine.snapshot_kpi())
-        self._latency_chart.update_data(self.engine.snapshot_latency())
-        self._on_system(self.engine.snapshot_system())
 
     def _on_kpi(self, kpi_data):
         if "Active Endpoints" in self._kpi_labels:
@@ -364,5 +331,6 @@ class MonitoringPage(QWidget):
 
     def _on_log(self, entry):
         self._append_log(entry)
-        # Update WHY card with the latest log
+        if hasattr(self, "_why_placeholder") and self._why_placeholder.isVisible():
+            self._why_placeholder.hide()
         self._update_why_prediction(entry)

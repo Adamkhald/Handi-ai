@@ -407,65 +407,65 @@ class DashboardPage(QWidget):
         sep.setStyleSheet("background: #2e2b5f; max-height: 1px;")
         mc_lay.addWidget(sep)
 
-        # Rows (show top 6)
-        STATUS_COLORS = {
-            "Production": "#00c97d",
-            "Staging":    "#ffd400",
-            "Testing":    "#4d9fff",
-            "Retired":    "#ff5577",
-        }
-        for model in data.MODELS[:6]:
-            row = QHBoxLayout()
-            row.setSpacing(0)
-
-            name_lbl = QLabel(model["name"])
-            name_lbl.setStyleSheet("font-size: 12px; color: #ffffff; font-weight: 600; background: transparent;")
-            row.addWidget(name_lbl, 2)
-
-            type_lbl = QLabel(model["type"])
-            type_lbl.setStyleSheet("font-size: 11px; color: #9896c8; background: transparent;")
-            row.addWidget(type_lbl, 1)
-
-            acc_lbl = QLabel(f"{model['accuracy']:.1f}%")
-            acc_lbl.setStyleSheet("font-size: 11px; color: #00e0b8; font-weight: 600; background: transparent;")
-            row.addWidget(acc_lbl, 1)
-
-            drift_v = model["drift"]
-            drift_color = "#00c97d" if drift_v < 0.05 else ("#ffd400" if drift_v < 0.12 else "#ff5577")
-            drift_lbl = QLabel(f"{drift_v:.2f}")
-            drift_lbl.setStyleSheet(f"font-size: 11px; color: {drift_color}; font-weight: 600; background: transparent;")
-            row.addWidget(drift_lbl, 1)
-
-            st_color = STATUS_COLORS.get(model["status"], "#9896c8")
-            status_container = QWidget()
-            status_container.setStyleSheet(
-                f"background: {st_color}22; border-radius: 8px; border: 1px solid {st_color}44;"
+        # Rows (show top 6 — populated when real data is loaded)
+        if not data.MODELS:
+            empty = QLabel("No models loaded — use Upload & Analyze to add your first model.")
+            empty.setStyleSheet(
+                "font-size: 12px; color: #5a5888; padding: 16px 0; background: transparent;"
             )
-            st_inner = QHBoxLayout(status_container)
-            st_inner.setContentsMargins(8, 2, 8, 2)
-            st_lbl = QLabel(model["status"])
-            st_lbl.setStyleSheet(f"font-size: 10px; color: {st_color}; font-weight: 700; background: transparent;")
-            st_inner.addWidget(st_lbl)
-            row.addWidget(status_container, 1)
+            empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            mc_lay.addWidget(empty)
+        else:
+            STATUS_COLORS = {
+                "Production": "#00c97d", "Staging": "#ffd400",
+                "Testing": "#4d9fff",   "Retired": "#ff5577",
+            }
+            for i, model in enumerate(data.MODELS[:6]):
+                row = QHBoxLayout(); row.setSpacing(0)
 
-            reqs = model["requests"]
-            if reqs >= 1_000_000:
-                req_str = f"{reqs/1_000_000:.1f}M"
-            elif reqs >= 1000:
-                req_str = f"{reqs/1000:.0f}K"
-            else:
-                req_str = str(reqs) or "—"
-            req_lbl = QLabel(req_str)
-            req_lbl.setStyleSheet("font-size: 11px; color: #9896c8; background: transparent;")
-            row.addWidget(req_lbl, 1)
+                name_lbl = QLabel(model["name"])
+                name_lbl.setStyleSheet("font-size: 12px; color: #ffffff; font-weight: 600; background: transparent;")
+                row.addWidget(name_lbl, 2)
 
-            mc_lay.addLayout(row)
+                type_lbl = QLabel(model["type"])
+                type_lbl.setStyleSheet("font-size: 11px; color: #9896c8; background: transparent;")
+                row.addWidget(type_lbl, 1)
 
-            if model != data.MODELS[5]:
-                sep2 = QFrame()
-                sep2.setFrameShape(QFrame.Shape.HLine)
-                sep2.setStyleSheet("background: #2a2855; max-height: 1px;")
-                mc_lay.addWidget(sep2)
+                acc_lbl = QLabel(f"{model['accuracy']:.1f}%")
+                acc_lbl.setStyleSheet("font-size: 11px; color: #00e0b8; font-weight: 600; background: transparent;")
+                row.addWidget(acc_lbl, 1)
+
+                drift_v = model["drift"]
+                drift_color = "#00c97d" if drift_v < 0.05 else ("#ffd400" if drift_v < 0.12 else "#ff5577")
+                drift_lbl = QLabel(f"{drift_v:.2f}")
+                drift_lbl.setStyleSheet(f"font-size: 11px; color: {drift_color}; font-weight: 600; background: transparent;")
+                row.addWidget(drift_lbl, 1)
+
+                st_color = STATUS_COLORS.get(model["status"], "#9896c8")
+                status_container = QWidget()
+                status_container.setStyleSheet(
+                    f"background: {st_color}22; border-radius: 8px; border: 1px solid {st_color}44;"
+                )
+                st_inner = QHBoxLayout(status_container)
+                st_inner.setContentsMargins(8, 2, 8, 2)
+                st_lbl = QLabel(model["status"])
+                st_lbl.setStyleSheet(f"font-size: 10px; color: {st_color}; font-weight: 700; background: transparent;")
+                st_inner.addWidget(st_lbl)
+                row.addWidget(status_container, 1)
+
+                reqs = model["requests"]
+                req_str = (f"{reqs/1_000_000:.1f}M" if reqs >= 1_000_000
+                           else f"{reqs/1000:.0f}K" if reqs >= 1000 else str(reqs) or "—")
+                req_lbl = QLabel(req_str)
+                req_lbl.setStyleSheet("font-size: 11px; color: #9896c8; background: transparent;")
+                row.addWidget(req_lbl, 1)
+
+                mc_lay.addLayout(row)
+
+                if i < len(data.MODELS[:6]) - 1:
+                    sep2 = QFrame(); sep2.setFrameShape(QFrame.Shape.HLine)
+                    sep2.setStyleSheet("background: #2a2855; max-height: 1px;")
+                    mc_lay.addWidget(sep2)
 
         lay.addWidget(models_card)
         lay.addSpacing(10)
@@ -477,17 +477,6 @@ class DashboardPage(QWidget):
         self.engine.drift_mini_updated.connect(self._drift_card._chart.update_data)
         self.engine.chart_updated.connect(self._prod_card._chart.update_data)
         self.engine.shap_updated.connect(self._on_shap)
-
-        # Pre-fill data
-        models, acc, req, drift = self.engine.snapshot_metrics()
-        self._on_metrics(models, acc, req, drift, instant=True)
-        
-        dates, conf, drift_s = self.engine.snapshot_chart()
-        self._prod_card._chart.update_data(dates, conf, drift_s)
-        
-        self._traffic_card._chart.update_data(self.engine.snapshot_traffic())
-        self._drift_card._chart.update_data(self.engine.snapshot_drift_mini())
-        self._on_shap(self.engine.snapshot_shap())
 
     def _on_metrics(self, models, acc, req_str, drift, instant=False):
         if len(self._metric_cards) == 4:

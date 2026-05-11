@@ -43,17 +43,20 @@ class DataEngine(QObject):
     """
 
     # ── Signals ───────────────────────────────────────────────────────────────
-    metrics_updated   = Signal(int, float, str, float)
-    gauge_updated     = Signal(float)
-    chart_updated     = Signal(list, list, list)
-    traffic_updated   = Signal(list)
-    drift_mini_updated = Signal(list)
-    log_entry_added   = Signal(dict)
-    system_updated    = Signal(dict)
-    shap_updated      = Signal(list)
-    model_drift_updated = Signal(list)
-    latency_updated   = Signal(list)
-    kpi_updated       = Signal(dict)
+    metrics_updated        = Signal(int, float, str, float)
+    gauge_updated          = Signal(float)
+    chart_updated          = Signal(list, list, list)
+    traffic_updated        = Signal(list)
+    drift_mini_updated     = Signal(list)
+    log_entry_added        = Signal(dict)
+    system_updated         = Signal(dict)
+    shap_updated           = Signal(list)
+    model_drift_updated    = Signal(list)
+    latency_updated        = Signal(list)
+    kpi_updated            = Signal(dict)
+    # Emitted once when real data is loaded from MLAnalyzer
+    metrics_computed       = Signal(dict)   # full results dict → MetricsPage
+    feature_drift_computed = Signal(list)   # drift list        → DriftPage
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -99,6 +102,10 @@ class DataEngine(QObject):
         self._rps      = 654
         self._err_rate = 0.02
         self._latency_p99 = 42
+
+        # ── Real-data state (populated by load_real_data) ─────
+        self._real_logs    = []
+        self._real_log_idx = 0
 
         # ── Timers ────────────────────────────────────────────
         self._t_gauge   = QTimer(self); self._t_gauge.timeout.connect(self._fetch_gauge)
@@ -207,7 +214,13 @@ class DataEngine(QObject):
         self.threadpool.start(worker)
 
     def _handle_log(self, res):
-        if res:
+        if self._real_logs:
+            # Cycle through real prediction entries, updating timestamp each time
+            entry = dict(self._real_logs[self._real_log_idx % len(self._real_logs)])
+            entry["timestamp"] = datetime.now().strftime("%H:%M:%S")
+            self._real_log_idx += 1
+            self.log_entry_added.emit(entry)
+        elif res:
             self.log_entry_added.emit(res)
         else:
             entry = {
@@ -233,6 +246,71 @@ class DataEngine(QObject):
             self._err_rate  = round(_rand_walk(self._err_rate, 0.005, 0.001, 0.5), 3)
             self._latency_p99 = int(_rand_walk(self._latency_p99, 4, 5, 200))
             self.kpi_updated.emit({"rps": self._rps, "err_rate": self._err_rate, "latency_p99": self._latency_p99, "drift_alerts": 1 if self._drift_score > 5 else 0, "active_eps": 5})
+
+    # ── Real Data Loader ─────────────────────────────────────────────────────
+
+    def load_real_data(self, results: dict):
+        """
+        Called by UploadPage after MLAnalyzer finishes.
+        Stops simulation timers that have real replacements and emits
+        real data through all existing signals so every page updates.
+        """
+        # Stop simulation for metrics/chart/SHAP — we have real values now
+        self._t_metrics.stop()
+        self._t_chart.stop()
+        self._t_shap.stop()
+
+        # Store real logs so _handle_log cycles through them
+        self._real_logs    = list(results.get("prediction_logs", []))
+        self._real_log_idx = 0
+
+        m          = results["metrics"]
+        n_samples  = results["n_samples"]
+        req_str    = f"{n_samples:,}"
+        avg_drift  = results.get("avg_drift", 0.0)
+
+        # Sync internal state so snapshots stay consistent
+        self._accuracy    = m["accuracy"]
+        self._drift_score = avg_drift
+        self._models_count = 1
+
+        # ── Emit through all existing signals ───────────────────
+        self.metrics_updated.emit(1, m["accuracy"], req_str, avg_drift)
+        self.gauge_updated.emit(m["accuracy"])
+        self.shap_updated.emit(results["shap_features"])
+
+        # Build model drift list from feature drift
+        model_name  = results.get("model_name", "uploaded_model")
+        model_drift = [(model_name, round(avg_drift / 100, 3))]
+        self.model_drift_updated.emit(model_drift)
+
+        # Refresh chart with current internal series (accuracy as confidence proxy)
+        conf_val = m["accuracy"]
+        for _ in range(5):
+            self._conf_series.append(round(conf_val + random.uniform(-0.5, 0.5), 2))
+            self._drift_series.append(round(avg_drift + random.uniform(-0.1, 0.1), 2))
+            self._dates.append(datetime.now().strftime("%H:%M"))
+        self.chart_updated.emit(
+            list(self._dates), list(self._conf_series), list(self._drift_series)
+        )
+
+        # KPI update using real latency
+        avg_lat = int(results.get("avg_latency_ms", 34))
+        self.kpi_updated.emit({
+            "rps":         self._rps,
+            "err_rate":    self._err_rate,
+            "latency_p99": avg_lat,
+            "drift_alerts": 1 if avg_drift > 5 else 0,
+            "active_eps":  1,
+        })
+
+        # ── New full-results signals for MetricsPage & DriftPage ─
+        self.metrics_computed.emit(results)
+        self.feature_drift_computed.emit(results.get("feature_drift", []))
+
+        # Start cycling real prediction logs
+        if not self._t_log.isActive():
+            self._t_log.start(2200)
 
     # ── Snapshots ────────────────────────────────────────────────────────────
     def snapshot_metrics(self):

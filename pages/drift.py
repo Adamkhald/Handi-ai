@@ -103,63 +103,23 @@ class DriftDetectionPage(QWidget):
         sep.setStyleSheet("background: #2e2b5f; max-height: 1px;")
         fl.addWidget(sep)
 
-        features_drift = [
-            ("transaction_amount", 0.021, 0.048, 2.1,  "Stable"),
-            ("merchant_category",  0.087, 0.123, 8.7,  "Monitor"),
-            ("time_of_day",        0.015, 0.031, 1.5,  "Stable"),
-            ("location_mismatch",  0.142, 0.187, 14.2, "Warning"),
-            ("user_history_score", 0.031, 0.056, 3.1,  "Stable"),
-            ("device_fingerprint", 0.009, 0.017, 0.9,  "Stable"),
-            ("card_present",       0.053, 0.089, 5.3,  "Monitor"),
-        ]
+        # Dynamic rows container
+        self._feat_rows_container = QWidget()
+        self._feat_rows_container.setStyleSheet("background: transparent;")
+        self._feat_rows_lay = QVBoxLayout(self._feat_rows_container)
+        self._feat_rows_lay.setContentsMargins(0, 0, 0, 0)
+        self._feat_rows_lay.setSpacing(0)
+        fl.addWidget(self._feat_rows_container)
 
-        STATUS_MAP = {
-            "Stable":  ("#00c97d", "✓"),
-            "Monitor": ("#ffd400", "⚠"),
-            "Warning": ("#ff5577", "⚑"),
-            "Drift":   ("#ff5577", "⚠"),
-        }
-
-        for feat, psi, ks, drift_pct, status in features_drift:
-            row = QHBoxLayout()
-            row.setSpacing(0)
-
-            name = QLabel(feat)
-            name.setStyleSheet("font-size: 12px; font-weight: 600; color: #e0dff5; background: transparent;")
-            row.addWidget(name, 2)
-
-            sc, si = STATUS_MAP[status]
-            psi_lbl = QLabel(f"{psi:.3f}")
-            psi_lbl.setStyleSheet(f"font-size: 11px; color: {sc}; font-weight: 600; background: transparent;")
-            row.addWidget(psi_lbl, 1)
-
-            ks_lbl = QLabel(f"{ks:.3f}")
-            ks_lbl.setStyleSheet("font-size: 11px; color: #9896c8; background: transparent;")
-            row.addWidget(ks_lbl, 1)
-
-            dp_lbl = QLabel(f"{drift_pct:.1f}%")
-            dp_lbl.setStyleSheet(f"font-size: 11px; color: {sc}; font-weight: 700; background: transparent;")
-            row.addWidget(dp_lbl, 1)
-
-            st_badge = QLabel(f"{si}  {status}")
-            st_badge.setStyleSheet(
-                f"background: {sc}22; border: 1px solid {sc}44; border-radius: 8px; "
-                f"color: {sc}; font-size: 10px; font-weight: 700; padding: 2px 8px;"
-            )
-            row.addWidget(st_badge, 1)
-
-            # Sparkline trend
-            trend_data = [random.uniform(0.01, drift_pct/100 + 0.05) for _ in range(12)]
-            spark = Sparkline(trend_data, color=sc, fill=True)
-            spark.setFixedSize(80, 28)
-            row.addWidget(spark, 1)
-
-            fl.addLayout(row)
-
-            if feat != features_drift[-1][0]:
-                sep2 = QFrame(); sep2.setFrameShape(QFrame.Shape.HLine)
-                sep2.setStyleSheet("background: #2a2855; max-height: 1px;")
-                fl.addWidget(sep2)
+        # Placeholder until real drift data arrives
+        self._feat_empty_lbl = QLabel(
+            "No drift data yet — upload a model and dataset to compute real PSI and KS statistics."
+        )
+        self._feat_empty_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._feat_empty_lbl.setStyleSheet(
+            "font-size: 12px; color: #5a5888; padding: 16px 0; background: transparent;"
+        )
+        self._feat_rows_lay.addWidget(self._feat_empty_lbl)
 
         lay.addWidget(feat_card)
 
@@ -214,6 +174,72 @@ class DriftDetectionPage(QWidget):
 
     def _connect_engine(self):
         self.engine.model_drift_updated.connect(self._on_model_drift)
+        self.engine.feature_drift_computed.connect(self._on_feature_drift)
+
+    def _on_feature_drift(self, drift_data):
+        if drift_data:
+            if hasattr(self, "_feat_empty_lbl"):
+                self._feat_empty_lbl.hide()
+            self._rebuild_feat_table(drift_data)
+
+    def _rebuild_feat_table(self, drift_data):
+        STATUS_MAP = {
+            "Stable":  ("#00c97d", "✓"),
+            "Monitor": ("#ffd400", "⚠"),
+            "Warning": ("#ff5577", "⚑"),
+        }
+        while self._feat_rows_lay.count():
+            item = self._feat_rows_lay.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+            elif item.layout():
+                # clear nested layout
+                while item.layout().count():
+                    c = item.layout().takeAt(0)
+                    if c.widget():
+                        c.widget().deleteLater()
+
+        for idx, d in enumerate(drift_data):
+            status = d.get("status", "Stable")
+            sc, si = STATUS_MAP.get(status, ("#9896c8", "—"))
+            row = QHBoxLayout(); row.setSpacing(0)
+
+            name_lbl = QLabel(d["feature"])
+            name_lbl.setStyleSheet(
+                "font-size: 12px; font-weight: 600; color: #e0dff5; background: transparent;"
+            )
+            row.addWidget(name_lbl, 2)
+
+            psi_lbl = QLabel(f"{d['psi']:.3f}")
+            psi_lbl.setStyleSheet(f"font-size: 11px; color: {sc}; font-weight: 600; background: transparent;")
+            row.addWidget(psi_lbl, 1)
+
+            ks_lbl = QLabel(f"{d['ks']:.3f}")
+            ks_lbl.setStyleSheet("font-size: 11px; color: #9896c8; background: transparent;")
+            row.addWidget(ks_lbl, 1)
+
+            dp_lbl = QLabel(f"{d['drift_pct']:.1f}%")
+            dp_lbl.setStyleSheet(f"font-size: 11px; color: {sc}; font-weight: 700; background: transparent;")
+            row.addWidget(dp_lbl, 1)
+
+            st_badge = QLabel(f"{si}  {status}")
+            st_badge.setStyleSheet(
+                f"background: {sc}22; border: 1px solid {sc}44; border-radius: 8px; "
+                f"color: {sc}; font-size: 10px; font-weight: 700; padding: 2px 8px;"
+            )
+            row.addWidget(st_badge, 1)
+
+            trend_data = [random.uniform(0.01, d["psi"] + 0.05) for _ in range(12)]
+            spark = Sparkline(trend_data, color=sc, fill=True)
+            spark.setFixedSize(80, 28)
+            row.addWidget(spark, 1)
+
+            self._feat_rows_lay.addLayout(row)
+
+            if idx < len(drift_data) - 1:
+                sep = QFrame(); sep.setFrameShape(QFrame.Shape.HLine)
+                sep.setStyleSheet("background: #2a2855; max-height: 1px;")
+                self._feat_rows_lay.addWidget(sep)
 
     def _on_model_drift(self, drifts):
         for name, val in drifts:

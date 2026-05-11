@@ -2,11 +2,14 @@
 HandiAI — Dashboard Page
 """
 
+import json
+import logging
+
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QPushButton, QScrollArea, QFrame, QLineEdit, QSizePolicy
 )
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QTimer, QRunnable, QThreadPool, QObject, Signal
 
 import data
 from widgets.components import (
@@ -16,6 +19,49 @@ from charts.matplotlib_charts import (
     ProductionChart, TrafficChart, DriftMiniChart
 )
 
+logger = logging.getLogger(__name__)
+
+DEEPSEEK_API_KEY = "sk-f85cff66dd3a4dd6a0bafef945b6ddfc"
+DEEPSEEK_URL     = "https://api.deepseek.com/v1/chat/completions"
+
+
+# ─────────────────────────────────────────────────────────────
+#  DeepSeek Worker
+# ─────────────────────────────────────────────────────────────
+class _DeepSeekSignals(QObject):
+    done  = Signal(str)
+    error = Signal(str)
+
+
+class _DeepSeekWorker(QRunnable):
+    def __init__(self, messages):
+        super().__init__()
+        self.messages = messages
+        self.signals  = _DeepSeekSignals()
+
+    def run(self):
+        try:
+            import urllib.request
+            payload = json.dumps({
+                "model":    "deepseek-chat",
+                "messages": self.messages,
+                "max_tokens": 300,
+            }).encode("utf-8")
+            req = urllib.request.Request(
+                DEEPSEEK_URL,
+                data    = payload,
+                headers = {
+                    "Content-Type":  "application/json",
+                    "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+                },
+                method = "POST",
+            )
+            with urllib.request.urlopen(req, timeout=20) as resp:
+                body = json.loads(resp.read().decode("utf-8"))
+            text = body["choices"][0]["message"]["content"].strip()
+            self.signals.done.emit(text)
+        except Exception as e:
+            self.signals.error.emit(f"(API error: {e})")
 
 # ─────────────────────────────────────────────────────────────
 #  Chat Components
@@ -52,6 +98,15 @@ class ChatPanel(QFrame):
         super().__init__(parent)
         self.setObjectName("card")
         self.setFixedSize(300, 420)
+        self._pool    = QThreadPool()
+        self._history = [
+            {"role": "system", "content": (
+                "You are HandiAI Assistant, an expert in ML model monitoring, "
+                "drift detection, SHAP explainability, and MLOps. "
+                "Answer concisely (2-4 sentences max). "
+                "If asked about the current dashboard, say data updates live."
+            )}
+        ]
         self._setup_ui()
         self.hide()
 
@@ -71,7 +126,7 @@ class ChatPanel(QFrame):
         )
         hl.addWidget(title)
         hl.addStretch()
-        status = QLabel("Online")
+        status = QLabel("DeepSeek")
         status.setStyleSheet("color: #888888; font-size: 10px; background: transparent;")
         hl.addWidget(status)
         lay.addWidget(header)
@@ -108,20 +163,21 @@ class ChatPanel(QFrame):
         self._input.returnPressed.connect(self._send)
         ir.addWidget(self._input)
 
-        send_btn = QPushButton("Send")
-        send_btn.setFixedSize(52, 32)
-        send_btn.setStyleSheet(
+        self._send_btn = QPushButton("Send")
+        self._send_btn.setFixedSize(52, 32)
+        self._send_btn.setStyleSheet(
             "QPushButton { background: #111111; color: #ffffff; border-radius: 8px; "
             "font-size: 12px; font-weight: 600; border: none; }"
             "QPushButton:hover { background: #333333; }"
+            "QPushButton:disabled { background: #cccccc; }"
         )
-        send_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        send_btn.clicked.connect(self._send)
-        ir.addWidget(send_btn)
+        self._send_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._send_btn.clicked.connect(self._send)
+        ir.addWidget(self._send_btn)
         lay.addWidget(input_row)
 
         self._add_message(
-            "Hello! Ask me about model accuracy, drift, traffic, or navigation.", False
+            "Hello! I'm powered by DeepSeek. Ask me about your models, drift, SHAP, or anything ML.", False
         )
 
     def _add_message(self, text, is_user):
@@ -130,38 +186,43 @@ class ChatPanel(QFrame):
         QTimer.singleShot(60, lambda: self._scroll.verticalScrollBar().setValue(
             self._scroll.verticalScrollBar().maximum()
         ))
+        return bubble
 
     def _send(self):
         text = self._input.text().strip()
         if not text:
             return
         self._input.clear()
+        self._input.setEnabled(False)
+        self._send_btn.setEnabled(False)
         self._add_message(text, True)
-        QTimer.singleShot(250, lambda: self._add_message(self._respond(text), False))
 
-    def _respond(self, text):
-        t = text.lower()
-        if any(w in t for w in ["accuracy", "accurate"]):
-            acc = data.MODEL_METRICS.get("accuracy", 0)
-            return (f"Current model accuracy is {acc * 100:.1f}%." if acc
-                    else "No model loaded yet. Upload one via Upload & Analyze.")
-        if any(w in t for w in ["drift", "shift"]):
-            return "Drift scores update in real-time once a model is active."
-        if any(w in t for w in ["model", "loaded"]):
-            n = len(data.MODELS)
-            return (f"{n} model(s) currently loaded." if n
-                    else "No models loaded. Use Upload & Analyze to add one.")
-        if any(w in t for w in ["request", "traffic", "predict"]):
-            return "Production request counts update live once a model is deployed."
-        if any(w in t for w in ["shap", "feature", "explain"]):
-            return "Go to Explainability for detailed SHAP feature importance charts."
-        if any(w in t for w in ["log"]):
-            return "Production logs are on the Production Logs page."
-        if any(w in t for w in ["monitor"]):
-            return "Real-time monitoring is on the Monitoring page."
-        if any(w in t for w in ["help", "what can"]):
-            return "I can help with accuracy, drift, traffic, SHAP, and navigation."
-        return "I can help with model accuracy, drift, traffic, SHAP, and more. Try asking!"
+        # Show thinking indicator
+        thinking = self._add_message("Thinking…", False)
+
+        # Build message history
+        self._history.append({"role": "user", "content": text})
+        messages = list(self._history)
+
+        worker = _DeepSeekWorker(messages)
+        worker.signals.done.connect(lambda reply: self._on_reply(thinking, reply))
+        worker.signals.error.connect(lambda err: self._on_reply(thinking, err))
+        self._pool.start(worker)
+
+    def _on_reply(self, thinking_bubble, text):
+        # Remove the thinking bubble
+        idx = self._msg_lay.indexOf(thinking_bubble)
+        if idx >= 0:
+            self._msg_lay.takeAt(idx)
+            thinking_bubble.deleteLater()
+
+        # Add real reply
+        self._history.append({"role": "assistant", "content": text})
+        self._add_message(text, False)
+
+        self._input.setEnabled(True)
+        self._send_btn.setEnabled(True)
+        self._input.setFocus()
 
 
 # ─────────────────────────────────────────────────────────────

@@ -102,6 +102,9 @@ class HandiAIMainWindow(QMainWindow):
         right_lay.addWidget(self._stack, 1)
         root_lay.addWidget(right, 1)
 
+        # Start the live data engine
+        self.engine.start()
+
     _PAGE_TITLES = [
         "Dashboard", "Upload & Analyze", "Models",
         "Explainability", "Monitoring", "Production Logs",

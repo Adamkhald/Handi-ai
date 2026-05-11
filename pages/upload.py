@@ -262,6 +262,7 @@ class UploadPage(QWidget):
                 item.widget().deleteLater()
 
         m = r["metrics"]
+        task = r.get("task_type", "classification")
 
         title = QLabel("Results")
         title.setStyleSheet(
@@ -269,22 +270,40 @@ class UploadPage(QWidget):
         )
         self._res_lay.addWidget(title)
 
-        sub = QLabel(
-            f"{r['model_type']}  ·  {r['n_samples']:,} samples  ·  "
-            f"{r['n_features']} features  ·  {len(r['class_labels'])} classes"
-        )
+        if task == "regression":
+            sub_text = (
+                f"{r['model_type']}  ·  {r['n_samples']:,} samples  ·  "
+                f"{r['n_features']} features  ·  Regression"
+            )
+        else:
+            sub_text = (
+                f"{r['model_type']}  ·  {r['n_samples']:,} samples  ·  "
+                f"{r['n_features']} features  ·  {len(r['class_labels'])} classes"
+            )
+        sub = QLabel(sub_text)
         sub.setStyleSheet("font-size: 11px; color: #555555; background: transparent;")
         self._res_lay.addWidget(sub)
 
         pills = QHBoxLayout()
         pills.setSpacing(10)
-        for name, val in [
-            ("Accuracy",  f"{m['accuracy']:.1f}%"),
-            ("Precision", f"{m['precision']:.1f}%"),
-            ("Recall",    f"{m['recall']:.1f}%"),
-            ("F1",        f"{m['f1_score']:.1f}%"),
-            ("AUC",       f"{m['roc_auc']:.1f}%"),
-        ]:
+
+        if task == "regression":
+            pill_data = [
+                ("R²",   f"{m.get('r2', 0):.4f}"),
+                ("MAE",  f"{m.get('mae', 0):.4f}"),
+                ("RMSE", f"{m.get('rmse', 0):.4f}"),
+                ("MSE",  f"{m.get('mse', 0):.4f}"),
+            ]
+        else:
+            pill_data = [
+                ("Accuracy",  f"{m['accuracy']:.1f}%"),
+                ("Precision", f"{m['precision']:.1f}%"),
+                ("Recall",    f"{m['recall']:.1f}%"),
+                ("F1",        f"{m['f1_score']:.1f}%"),
+                ("AUC",       f"{m['roc_auc']:.1f}%"),
+            ]
+
+        for name, val in pill_data:
             w  = QWidget()
             w.setStyleSheet(
                 "background: #ebebeb; border: 1px solid #d8d8d8; border-radius: 8px;"
